@@ -10,8 +10,13 @@ echo "I: [novaos] configuring services"
 systemctl enable systemd-timesyncd.service
 systemctl enable systemd-resolved.service
 systemctl enable NetworkManager.service
-systemctl enable fwupd.service
 systemctl enable bluetooth.service
+
+# fwupd.service is D-Bus activated and has no [Install] section, so enabling it
+# is a no-op that only emits "unit files have no installation config". What
+# actually needs enabling is the timer that refreshes LVFS metadata; without it
+# the system never learns that firmware updates exist.
+systemctl enable fwupd-refresh.timer
 
 # zram swap. See /etc/default/zramswap for the sizing rationale.
 systemctl enable zramswap.service
