@@ -1,10 +1,10 @@
 #!/bin/sh
 # Runs inside the chroot during `lb build`, after packages are installed.
-# Enables the services NovaOS needs on first boot and applies base policy.
+# Enables the services OneOS needs on first boot and applies base policy.
 
 set -e
 
-echo "I: [novaos] configuring services"
+echo "I: [oneos] configuring services"
 
 # --- Services that must be on at boot ----------------------------------------
 systemctl enable systemd-timesyncd.service
@@ -35,11 +35,11 @@ systemctl set-default multi-user.target
 # Members of 'sudo' get admin rights; the live user is added to it by
 # live-config. Require a password -- passwordless sudo on a consumer OS is
 # indefensible even at this stage.
-cat > /etc/sudoers.d/novaos <<'EOF'
+cat > /etc/sudoers.d/oneos <<'EOF'
 %sudo ALL=(ALL:ALL) ALL
 EOF
-chmod 0440 /etc/sudoers.d/novaos
+chmod 0440 /etc/sudoers.d/oneos
 
-# Reload sysctl settings shipped in /etc/sysctl.d/90-novaos.conf so they are
+# Reload sysctl settings shipped in /etc/sysctl.d/90-oneos.conf so they are
 # baked into the image state where applicable.
-echo "I: [novaos] service configuration complete"
+echo "I: [oneos] service configuration complete"

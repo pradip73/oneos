@@ -1,9 +1,9 @@
-PRETTY_NAME="NovaOS 0.1.0 (Phase 1 base)"
-NAME="NovaOS"
+PRETTY_NAME="OneOS 0.1.0 (Phase 1 base)"
+NAME="OneOS"
 VERSION_ID="0.1.0"
 VERSION="0.1.0 (phase1-base)"
 VERSION_CODENAME=phase1
-ID=novaos
+ID=oneos
 ID_LIKE=debian
 HOME_URL="https://example.invalid/"
 SUPPORT_URL="https://example.invalid/support"

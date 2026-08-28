@@ -22,9 +22,9 @@ exactly as it is.
    ```bash
    git init
    git add -A
-   git commit -m "NovaOS Phase 1 base"
+   git commit -m "OneOS Phase 1 base"
    git branch -M main
-   git remote add origin https://github.com/<your-username>/novaos.git
+   git remote add origin https://github.com/<your-username>/oneos.git
    git push -u origin main
    ```
 
@@ -32,7 +32,7 @@ exactly as it is.
    (~25–40 minutes).
 
 4. When it finishes, open the run and download the
-   **`novaos-0.1.0-amd64-iso`** artifact from the Artifacts section.
+   **`oneos-0.1.0-amd64-iso`** artifact from the Artifacts section.
 
 5. Unzip it, then write the `.iso` to a USB stick with **Rufus** or
    **balenaEtcher** in **DD / image mode** — not ISO mode, this is a hybrid image.
@@ -70,7 +70,7 @@ If you change your mind:
    ```
 
 That script does everything: installs Debian, installs dependencies, copies the repo
-onto the Linux filesystem, builds the ISO, and drops it in `C:\novaos-out\`.
+onto the Linux filesystem, builds the ISO, and drops it in `C:\oneos-out\`.
 
 ---
 
@@ -79,7 +79,7 @@ onto the Linux filesystem, builds the ISO, and drops it in `C:\novaos-out\`.
 Any Debian or Ubuntu machine works:
 
 ```bash
-git clone <your-repo> && cd novaos
+git clone <your-repo> && cd oneos
 bash ./bootstrap.sh
 ```
 
@@ -95,7 +95,7 @@ Phase 1 base image. It:
 - reaches a **text login** — user `nova`
 - includes non-free firmware so Wi-Fi works on real laptops
 - carries the Debian installer, so it installs onto a fresh machine
-- applies the NovaOS kernel tunables and zram configuration
+- applies the OneOS kernel tunables and zram configuration
 
 It does **not** have a graphical desktop. That is Phase 2 (compositor) and Phase 3
 (shell) — several months of work each, per [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).

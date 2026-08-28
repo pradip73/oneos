@@ -1,5 +1,5 @@
 #!/bin/bash
-# NovaOS bootstrap (Linux side). Invoked by setup.ps1, but can be run directly
+# OneOS bootstrap (Linux side). Invoked by setup.ps1, but can be run directly
 # from inside WSL or any Debian host:
 #
 #   cd /mnt/c/Users/pradi/OneDrive/Desktop/oneaios && bash ./bootstrap.sh
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 readonly SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly DEST="${HOME}/novaos"
+readonly DEST="${HOME}/oneos"
 
 log()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*" >&2; }

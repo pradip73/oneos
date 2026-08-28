@@ -1,7 +1,7 @@
 # Technical Architecture — Custom Linux-Based Desktop OS
 
 Status: **scoping draft for review**. No implementation until signed off.
-Working codename used throughout: **NovaOS** (placeholder — rename before Phase 1).
+Product name: **OneOS**.
 
 ---
 

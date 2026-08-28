@@ -1,6 +1,6 @@
-# NovaOS
+# OneOS
 
-A custom Linux-based desktop operating system. Working codename — rename before Phase 1 ships.
+A custom Linux-based desktop operating system.
 
 **Current state: Phase 1 (base image). There is no desktop yet.** The compositor is Phase 2 and the shell is Phase 3. See [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
 
@@ -32,7 +32,7 @@ sudo apt update
 sudo apt install -y live-build debootstrap xorriso squashfs-tools rsync
 ```
 
-**Important:** copy this repository onto the Linux filesystem first (for example `~/novaos`). Building on a Windows-mounted path such as `/mnt/d/os` will fail — live-build creates device nodes and mounts inside a chroot, which drvfs cannot support. `build.sh` checks for this and stops early with a clear message.
+**Important:** copy this repository onto the Linux filesystem first (for example `~/oneos`). Building on a Windows-mounted path such as `/mnt/d/os` will fail — live-build creates device nodes and mounts inside a chroot, which drvfs cannot support. `build.sh` checks for this and stops early with a clear message.
 
 ```bash
 sudo ./build.sh
@@ -59,14 +59,14 @@ So **15 GB free is enough** for an ISO build, and `build.sh` checks for that. Th
 ### Writing to USB
 
 ```bash
-sudo dd if=out/novaos-0.1.0-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress conv=fsync
+sudo dd if=out/oneos-0.1.0-amd64.hybrid.iso of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
 From Windows, use Rufus or balenaEtcher in **DD / image mode** (not ISO mode — the image is a hybrid ISO).
 
 ## What this ISO does and does not do
 
-**Does:** boots on UEFI and legacy BIOS, reaches a text login, includes non-free firmware so Wi-Fi works on real laptops, ships the Debian installer so it can install onto a fresh machine, and applies the NovaOS kernel tunables and zram configuration.
+**Does:** boots on UEFI and legacy BIOS, reaches a text login, includes non-free firmware so Wi-Fi works on real laptops, ships the Debian installer so it can install onto a fresh machine, and applies the OneOS kernel tunables and zram configuration.
 
 **Does not:** no graphical desktop, no Windows compatibility, no Android compatibility, no atomic updates, no Secure Boot, no disk encryption by default. Every one of those is a later phase with its own milestone.
 

@@ -1,4 +1,4 @@
-# NovaOS Phase 1 base package set.
+# OneOS Phase 1 base package set.
 #
 # Deliberately minimal. Every package here must justify itself against the
 # 4 GB / dual-core minimum spec. Nothing in this file is a desktop component --
@@ -16,7 +16,7 @@ systemd-resolved
 # initramfs-tools arrives automatically as a live-boot dependency.
 # The switch to dracut belongs in Phase 6, when the base moves to an
 # mkosi-built A/B image that has no live-boot component at all.
-# Stock Debian kernel for Phase 1. Replaced by the NovaOS kernel package in
+# Stock Debian kernel for Phase 1. Replaced by the OneOS kernel package in
 # Phase 1b -- see kernel/README.md.
 linux-image-amd64
 firmware-linux-free

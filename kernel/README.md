@@ -1,4 +1,4 @@
-# NovaOS kernel
+# OneOS kernel
 
 Phase 1 ships Debian's stock kernel so the ISO boots on day one. This directory
 builds the replacement, which lands in Phase 1b.
@@ -12,7 +12,7 @@ Track the upstream **LTS** kernel and carry deltas as an ordered patch series �
 never a fork. A fork means inheriting the kernel's entire security-backporting
 burden, which is the most common way small distributions die.
 
-The config in [novaos.config-fragment](novaos.config-fragment) is a *fragment*,
+The config in [oneos.config-fragment](oneos.config-fragment) is a *fragment*,
 merged onto Debian's config rather than onto `defconfig`. Debian's config already
 covers the hardware breadth real consumer laptops need — Wi-Fi chipsets, webcams,
 touchpads, power management. Starting from `defconfig` produces a kernel that
@@ -34,7 +34,7 @@ sudo apt install -y build-essential fakeroot libncurses-dev bison flex \
 
 The resulting `.deb` packages go into `../out/kernel/`. To use them in the ISO,
 replace `linux-image-amd64` in
-`build/config/package-lists/novaos-base.list.chroot` with the built package and
+`build/config/package-lists/oneos-base.list.chroot` with the built package and
 add it to a local repo (see `docs/ARCHITECTURE.md` §6.2).
 
 ## The ntsync problem — read before building

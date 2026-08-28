@@ -1,5 +1,5 @@
 #!/bin/sh
-# NovaOS - live-build configuration (Phase 1: bootable base, no desktop yet)
+# OneOS - live-build configuration (Phase 1: bootable base, no desktop yet)
 #
 # This file is executed by `lb config`. Do not run it directly; run ../build.sh.
 #
@@ -27,8 +27,8 @@ LB_HELP="$(lb config --help 2>&1 || true)"
 # pinned build container provides.
 lb_has() {
 	if [ "$(printf '%s' "${LB_HELP}" | wc -c)" -lt 200 ]; then
-		echo "W: [novaos] 'lb config --help' gave no usable output;" >&2
-		echo "W: [novaos] assuming modern Debian live-build option names." >&2
+		echo "W: [oneos] 'lb config --help' gave no usable output;" >&2
+		echo "W: [oneos] assuming modern Debian live-build option names." >&2
 		return 0
 	fi
 	printf '%s' "${LB_HELP}" | grep -q -- "$1"
@@ -56,7 +56,7 @@ lb_has '--firmware-chroot' && OPTS="${OPTS} --firmware-chroot true"
 lb_has '--debian-installer-gui' && OPTS="${OPTS} --debian-installer-gui false"
 
 # NOTE: --image-name is deliberately not used. It is absent from some versions,
-# and build.sh renames the artifact to novaos-<version>-amd64.hybrid.iso anyway.
+# and build.sh renames the artifact to oneos-<version>-amd64.hybrid.iso anyway.
 
 lb config noauto \
 	--distribution trixie \
@@ -68,9 +68,9 @@ lb config noauto \
 	--apt-recommends false \
 	--apt-indices false \
 	--memtest none \
-	--iso-application "NovaOS" \
-	--iso-publisher "NovaOS Project" \
-	--iso-volume "NovaOS" \
-	--bootappend-live "boot=live components quiet splash username=nova hostname=novaos" \
+	--iso-application "OneOS" \
+	--iso-publisher "OneOS Project" \
+	--iso-volume "OneOS" \
+	--bootappend-live "boot=live components quiet splash username=nova hostname=oneos" \
 	${OPTS} \
 	"${@}"

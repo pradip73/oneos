@@ -1,5 +1,5 @@
 #!/bin/bash
-# NovaOS ISO build orchestrator.
+# OneOS ISO build orchestrator.
 #
 #   Usage:  sudo ./build.sh [clean|build|rebuild]
 #
@@ -7,7 +7,7 @@
 # for producing the ISO; you cannot build a Linux ISO from Windows). Requires
 # root because live-build creates and mounts a chroot.
 #
-# Output: out/novaos-<version>-amd64.hybrid.iso
+# Output: out/oneos-<version>-amd64.hybrid.iso
 #
 # See docs/BUILD-PLAN.md Phase 1 for what this ISO is and is not.
 
@@ -74,7 +74,7 @@ Move the build tree to a larger volume."
 	if [[ ${fstype} == "9p" || ${fstype} == "v9fs" || ${REPO_ROOT} == /mnt/[a-z]/* ]]; then
 		die "The build tree is on a Windows-mounted filesystem (${REPO_ROOT}).
 live-build requires a real Linux filesystem for the chroot.
-Copy this repo into the Linux filesystem first, e.g. ~/novaos, and build there."
+Copy this repo into the Linux filesystem first, e.g. ~/oneos, and build there."
 	fi
 
 	log "Preflight OK (free: ${free_gb} GB, version: ${VERSION})"
@@ -118,7 +118,7 @@ do_build() {
 	artifact=$(find "${BUILD_DIR}" -maxdepth 1 -name '*.iso' -print -quit)
 	[[ -n ${artifact} ]] || die "Build finished but produced no ISO. Check ${BUILD_DIR}/build.log"
 
-	local final="${OUT_DIR}/novaos-${VERSION}-amd64.hybrid.iso"
+	local final="${OUT_DIR}/oneos-${VERSION}-amd64.hybrid.iso"
 	mv "${artifact}" "${final}"
 	( cd "${OUT_DIR}" && sha256sum "$(basename "${final}")" > "$(basename "${final}").sha256" )
 
@@ -129,7 +129,7 @@ do_build() {
 		"$(cut -d' ' -f1 "${final}.sha256")"
 	cat <<-'EOF'
 	Next steps:
-	  1. Write to USB:   dd if=out/novaos-*.iso of=/dev/sdX bs=4M status=progress conv=fsync
+	  1. Write to USB:   dd if=out/oneos-*.iso of=/dev/sdX bs=4M status=progress conv=fsync
 	     (on Windows, use Rufus or balenaEtcher in DD/image mode)
 	  2. Boot a test machine. You should reach a text login as user 'nova'.
 	  3. This ISO has NO desktop. That is expected -- see docs/BUILD-PLAN.md Phase 1.

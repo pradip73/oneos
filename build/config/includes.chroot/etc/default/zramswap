@@ -1,4 +1,4 @@
-# NovaOS zram configuration.
+# OneOS zram configuration.
 #
 # On the 4 GB minimum-spec target, compressed swap in RAM is the single
 # highest-value memory tuning available: zstd typically achieves 3-4x on

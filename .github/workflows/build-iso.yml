@@ -1,4 +1,4 @@
-name: Build NovaOS ISO
+name: Build OneOS ISO
 
 # Builds the ISO on a cloud runner so no Linux environment is needed locally.
 # Push to main, or trigger manually from the Actions tab. The finished ISO is
@@ -88,7 +88,7 @@ jobs:
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:
-          name: novaos-${{ steps.ver.outputs.version }}-amd64-iso
+          name: oneos-${{ steps.ver.outputs.version }}-amd64-iso
           path: |
             out/*.iso
             out/*.sha256

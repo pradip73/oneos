@@ -1,4 +1,4 @@
-# NovaOS one-command setup (Windows side).
+# OneOS one-command setup (Windows side).
 #
 #   Run AFTER rebooting Windows:
 #       powershell -ExecutionPolicy Bypass -File .\setup.ps1
@@ -9,7 +9,7 @@
 #   3. Installs build dependencies inside Debian
 #   4. Copies this repo into the WSL Linux filesystem (NOT /mnt/c -- see below)
 #   5. Runs the ISO build
-#   6. Copies the finished ISO to C:\novaos-out (outside OneDrive, so it does
+#   6. Copies the finished ISO to C:\oneos-out (outside OneDrive, so it does
 #      not sync a 1.5 GB file to the cloud)
 #
 # It is safe to re-run. Each step is skipped if already done.
@@ -18,8 +18,8 @@ $ErrorActionPreference = 'Stop'
 
 $Distro   = 'Debian'
 $RepoWin  = $PSScriptRoot
-$RepoWsl  = '$HOME/novaos'
-$OutDir   = 'C:\novaos-out'
+$RepoWsl  = '$HOME/oneos'
+$OutDir   = 'C:\oneos-out'
 
 function Info { param($m) Write-Host "==> $m" -ForegroundColor Cyan }
 function Warn { param($m) Write-Host "[!] $m" -ForegroundColor Yellow }
