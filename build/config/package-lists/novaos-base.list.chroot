@@ -33,7 +33,13 @@ intel-microcode
 amd64-microcode
 
 # --- Boot chain --------------------------------------------------------------
-systemd-boot
+# NOTE: systemd-boot must NOT be listed here. Its postinst runs `bootctl
+# install`, which requires a real mounted EFI System Partition. There is none
+# inside a live-build chroot, so dpkg fails and takes the whole build with it.
+# The live ISO is booted by syslinux/grub-efi, which live-build installs into
+# the image itself -- no chroot package needed.
+# systemd-boot belongs to the installed system in Phase 6, where the A/B image
+# is built by mkosi against a real ESP.
 efibootmgr
 cryptsetup
 cryptsetup-initramfs
