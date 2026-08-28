@@ -99,18 +99,20 @@ do_build() {
 	log "Building ISO -- this takes 20-60 minutes on first run"
 	log "The apt cache is preserved between builds; later builds are much faster."
 
-	# live-build writes the interesting errors to build.log and exits with a
-	# bare status. Without this, a CI failure shows only "exit code 1" and the
-	# actual cause has to be dug out of an artifact -- so surface it inline.
-	if ! lb build; then
-		local rc=$?
-		warn "lb build failed (exit ${rc}). Last 120 lines of the live-build log:"
+	# live-build does NOT write a build.log of its own -- it logs to stdout and
+	# stderr and exits with a bare status. Tee it so the full output is visible
+	# in the CI job (where the failure has to be diagnosed) and is also kept on
+	# disk for the artifact upload.
+	set -o pipefail
+	if ! lb build 2>&1 | tee "${BUILD_DIR}/build.log"; then
 		echo "--------------------------------------------------------------"
-		tail -n 120 "${BUILD_DIR}/build.log" 2>/dev/null \
-			|| warn "no build.log was produced -- the failure was in lb config or earlier"
+		warn "lb build failed. The live-build output above is the full log."
+		warn "The last error line is usually the real cause; live-build prints"
+		warn "a lot of noise after it."
 		echo "--------------------------------------------------------------"
-		die "Build failed. See the log above."
+		die "Build failed."
 	fi
+	set +o pipefail
 
 	local artifact
 	artifact=$(find "${BUILD_DIR}" -maxdepth 1 -name '*.iso' -print -quit)
