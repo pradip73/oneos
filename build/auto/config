@@ -1,0 +1,35 @@
+#!/bin/sh
+# NovaOS - live-build configuration (Phase 1: bootable base, no desktop yet)
+#
+# This file is executed by `lb config`. Do not run it directly; run ../build.sh.
+#
+# Phase 1 scope, per docs/BUILD-PLAN.md:
+#   - Boots to a text console on real hardware (UEFI and legacy BIOS)
+#   - Ships the Debian stock kernel for now; the custom kernel from kernel/
+#     replaces it in Phase 1b once it is building cleanly.
+#   - Includes the Debian installer so the ISO can install onto a fresh machine.
+#   - No compositor, no shell. Those are Phases 2 and 3.
+
+set -e
+
+lb config noauto \
+	--distribution trixie \
+	--architectures amd64 \
+	--linux-flavours amd64 \
+	--archive-areas "main contrib non-free-firmware" \
+	--binary-images iso-hybrid \
+	--bootloaders "syslinux,grub-efi" \
+	--debian-installer live \
+	--debian-installer-gui false \
+	--apt-recommends false \
+	--apt-indices false \
+	--memtest none \
+	--firmware-binary true \
+	--firmware-chroot true \
+	--iso-application "NovaOS" \
+	--iso-publisher "NovaOS Project" \
+	--iso-volume "NovaOS $(cat "$(dirname "$0")/../../VERSION" 2>/dev/null || echo 0.1.0)" \
+	--image-name "novaos" \
+	--bootappend-live "boot=live components quiet splash username=nova hostname=novaos" \
+	--bootappend-install "quiet" \
+	"${@}"

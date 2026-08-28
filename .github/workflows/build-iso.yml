@@ -1,0 +1,76 @@
+name: Build NovaOS ISO
+
+# Builds the ISO on a cloud runner so no Linux environment is needed locally.
+# Push to main, or trigger manually from the Actions tab. The finished ISO is
+# attached to the run as a downloadable artifact.
+#
+# Self-hosting note: this file is also valid Forgejo Actions / Gitea Actions
+# syntax. If you move to a self-hosted Forgejo instance later (see
+# docs/ARCHITECTURE.md section 6.2), it runs there with only the
+# `runs-on` label changed.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'build/**'
+      - 'build.sh'
+      - 'VERSION'
+      - '.github/workflows/build-iso.yml'
+  workflow_dispatch:
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Reclaim runner disk space
+        # The hosted runner ships ~25 GB free, and the build needs ~8 GB peak.
+        # That is enough, but these preinstalled toolchains are dead weight and
+        # removing them buys ~20 GB of headroom for very little time.
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            live-build debootstrap xorriso squashfs-tools rsync
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Build ISO
+        run: |
+          chmod +x build.sh build/auto/config
+          find build/config/hooks -type f -name '*.hook.*' -exec chmod +x {} + || true
+          sudo ./build.sh build
+
+      - name: Show result
+        run: ls -lh out/
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: novaos-${{ steps.ver.outputs.version }}-amd64-iso
+          path: |
+            out/*.iso
+            out/*.sha256
+          retention-days: 30
+          compression-level: 0   # the ISO is already squashfs-compressed
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build/build.log
+          retention-days: 7

@@ -1,0 +1,17 @@
+# NovaOS zram configuration.
+#
+# On the 4 GB minimum-spec target, compressed swap in RAM is the single
+# highest-value memory tuning available: zstd typically achieves 3-4x on
+# anonymous desktop memory, so 2 GB of zram behaves like roughly 6-8 GB of
+# additional usable memory at a small CPU cost. This is what makes a 4 GB
+# machine feel usable rather than merely bootable.
+
+ALGO=zstd
+
+# Allocate 50% of physical RAM as zram. On a 4 GB machine that is 2 GB of
+# zram backing store. Do not raise this above 50% -- past that point the
+# incompressible-page worst case can push the system into OOM.
+PERCENT=50
+
+# Higher priority than any on-disk swap, so zram is always used first.
+PRIORITY=100

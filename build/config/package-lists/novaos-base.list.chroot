@@ -1,0 +1,79 @@
+# NovaOS Phase 1 base package set.
+#
+# Deliberately minimal. Every package here must justify itself against the
+# 4 GB / dual-core minimum spec. Nothing in this file is a desktop component --
+# the compositor and shell arrive in Phases 2 and 3 and get their own list.
+
+# --- Boot and init -----------------------------------------------------------
+systemd
+systemd-sysv
+systemd-timesyncd
+systemd-resolved
+dracut
+# Stock Debian kernel for Phase 1. Replaced by the NovaOS kernel package in
+# Phase 1b -- see kernel/README.md.
+linux-image-amd64
+firmware-linux-free
+# non-free-firmware: required for the Wi-Fi, Bluetooth and GPU hardware that
+# actually ships in consumer laptops. Without these the OS is unusable on most
+# real machines. This is a pragmatic exception to the open-source-only rule and
+# it is the same choice Debian itself made in Debian 12.
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-amd-graphics
+firmware-misc-nonfree
+intel-microcode
+amd64-microcode
+
+# --- Boot chain --------------------------------------------------------------
+systemd-boot
+efibootmgr
+cryptsetup
+cryptsetup-initramfs
+lvm2
+
+# --- Filesystems -------------------------------------------------------------
+e2fsprogs
+dosfstools
+btrfs-progs
+exfatprogs
+ntfs-3g
+fuse3
+
+# --- Networking --------------------------------------------------------------
+network-manager
+wpasupplicant
+iproute2
+iputils-ping
+ca-certificates
+openssh-client
+
+# --- Hardware / power --------------------------------------------------------
+pciutils
+usbutils
+udisks2
+upower
+fwupd
+bluez
+zram-tools
+
+# --- Core userland -----------------------------------------------------------
+bash
+coreutils
+util-linux
+sudo
+polkitd
+less
+nano
+vim-tiny
+curl
+wget
+gnupg
+apt-transport-https
+
+# --- Diagnostics (keep: you will need these on the test laptops) -------------
+htop
+strace
+lsof
+tree

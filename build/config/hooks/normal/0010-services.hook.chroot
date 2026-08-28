@@ -1,0 +1,40 @@
+#!/bin/sh
+# Runs inside the chroot during `lb build`, after packages are installed.
+# Enables the services NovaOS needs on first boot and applies base policy.
+
+set -e
+
+echo "I: [novaos] configuring services"
+
+# --- Services that must be on at boot ----------------------------------------
+systemctl enable systemd-timesyncd.service
+systemctl enable systemd-resolved.service
+systemctl enable NetworkManager.service
+systemctl enable fwupd.service
+systemctl enable bluetooth.service
+
+# zram swap. See /etc/default/zramswap for the sizing rationale.
+systemctl enable zramswap.service
+
+# --- Services we deliberately do NOT want -------------------------------------
+# No SSH server on a desktop image. If it is installed as a dependency, make
+# sure it is not listening by default.
+systemctl disable ssh.service 2>/dev/null || true
+
+# --- Boot behaviour ----------------------------------------------------------
+# Phase 1 has no desktop, so boot to a text console. This changes to
+# graphical.target in Phase 2 once the compositor exists.
+systemctl set-default multi-user.target
+
+# --- Base policy -------------------------------------------------------------
+# Members of 'sudo' get admin rights; the live user is added to it by
+# live-config. Require a password -- passwordless sudo on a consumer OS is
+# indefensible even at this stage.
+cat > /etc/sudoers.d/novaos <<'EOF'
+%sudo ALL=(ALL:ALL) ALL
+EOF
+chmod 0440 /etc/sudoers.d/novaos
+
+# Reload sysctl settings shipped in /etc/sysctl.d/90-novaos.conf so they are
+# baked into the image state where applicable.
+echo "I: [novaos] service configuration complete"
