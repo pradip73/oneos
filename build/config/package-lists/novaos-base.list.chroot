@@ -9,7 +9,13 @@ systemd
 systemd-sysv
 systemd-timesyncd
 systemd-resolved
-dracut
+# NOTE: dracut must NOT be listed here, even though docs/ARCHITECTURE.md
+# prefers it. A live ISO boots via live-boot-initramfs-tools, which depends on
+# initramfs-tools, and dracut Provides/Conflicts linux-initramfs-tool. Listing
+# both makes the package solver fail with "held broken packages".
+# initramfs-tools arrives automatically as a live-boot dependency.
+# The switch to dracut belongs in Phase 6, when the base moves to an
+# mkosi-built A/B image that has no live-boot component at all.
 # Stock Debian kernel for Phase 1. Replaced by the NovaOS kernel package in
 # Phase 1b -- see kernel/README.md.
 linux-image-amd64

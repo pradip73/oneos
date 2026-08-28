@@ -85,7 +85,16 @@ Config requirements driven by your features:
 - `CONFIG_MODULE_SIG_FORCE` with your signing key, and kernel `lockdown` in integrity mode once Secure Boot lands (Phase 6).
 - Keep `CONFIG_DEBUG_INFO_BTF` **on** — you want BTF for eBPF-based diagnostics later.
 
-**Where you'll need to learn:** Kconfig semantics, `make menuconfig`, initramfs generation (prefer `dracut` over `initramfs-tools` — better documented, systemd-friendly), module signing, and reading `dmesg` fluently. Budget 3–4 weeks of focused study. You do *not* need to write kernel C code for v1, and you should actively resist doing so.
+**Initramfs — a constraint worth writing down.** `dracut` is the better long-term
+choice (better documented, systemd-native, and what the Phase 6 image-based
+pipeline wants). But it **cannot be used in the Phase 1 live ISO**: live-build
+boots through `live-boot-initramfs-tools`, which depends on `initramfs-tools`,
+and `dracut` conflicts with it. The two are mutually exclusive, and listing both
+fails the package solver outright. So Phase 1 uses `initramfs-tools`, and the
+move to `dracut` happens in Phase 6 when the base becomes an mkosi-built A/B
+image with no live-boot component.
+
+**Where you'll need to learn:** Kconfig semantics, `make menuconfig`, initramfs generation, module signing, and reading `dmesg` fluently. Budget 3–4 weeks of focused study. You do *not* need to write kernel C code for v1, and you should actively resist doing so.
 
 ---
 
