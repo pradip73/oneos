@@ -103,7 +103,8 @@ do_build() {
 	# stderr and exits with a bare status. Tee it so the full output is visible
 	# in the CI job (where the failure has to be diagnosed) and is also kept on
 	# disk for the artifact upload.
-	set -o pipefail
+	# pipefail is already set at the top of the script, so a failing lb build
+	# is caught even though tee succeeds.
 	if ! lb build 2>&1 | tee "${BUILD_DIR}/build.log"; then
 		echo "--------------------------------------------------------------"
 		warn "lb build failed. The live-build output above is the full log."
@@ -112,7 +113,6 @@ do_build() {
 		echo "--------------------------------------------------------------"
 		die "Build failed."
 	fi
-	set +o pipefail
 
 	local artifact
 	artifact=$(find "${BUILD_DIR}" -maxdepth 1 -name '*.iso' -print -quit)
