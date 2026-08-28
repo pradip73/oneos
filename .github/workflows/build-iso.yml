@@ -55,8 +55,32 @@ jobs:
         run: |
           chmod +x build.sh build/auto/config
           find build/config/hooks -type f -name '*.hook.*' -exec chmod +x {} + || true
+
           # Already root inside the container, so no sudo.
+          set +e
           ./build.sh build
+          rc=$?
+          set -e
+          [ $rc -eq 0 ] && exit 0
+
+          # Re-emit the failure as workflow annotations. Job logs and artifacts
+          # both require repository admin credentials to download, but
+          # annotations are readable through the public check-runs API -- so
+          # this is the one place the error can be diagnosed without a token.
+          echo "::group::Extracted errors"
+          if [ -f build/build.log ]; then
+            grep -E '^E:' build/build.log | tail -n 15 | while IFS= read -r l; do
+              echo "::error::$l"
+            done
+            echo "-- last 15 lines --"
+            tail -n 15 build/build.log | while IFS= read -r l; do
+              echo "::error::TAIL $l"
+            done
+          else
+            echo "::error::build/build.log was not created; failure was before lb build"
+          fi
+          echo "::endgroup::"
+          exit $rc
 
       - name: Show result
         run: ls -lh out/
