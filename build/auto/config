@@ -9,8 +9,54 @@
 #     replaces it in Phase 1b once it is building cleanly.
 #   - Includes the Debian installer so the ISO can install onto a fresh machine.
 #   - No compositor, no shell. Those are Phases 2 and 3.
+#
+# Portability note: live-build option names differ between the 3.x series, the
+# 4.x series, and Ubuntu's divergent fork. Rather than pin to one and fail
+# obscurely, options that have moved are probed below before being passed.
 
 set -e
+
+# Capture the option list once.
+LB_HELP="$(lb config --help 2>&1 || true)"
+
+# Does the installed `lb config` accept this option?
+#
+# If --help produced nothing usable we must NOT answer "no" to everything --
+# that would silently drop the firmware options and ship an image with no
+# Wi-Fi. In that case assume the modern Debian option set, which is what the
+# pinned build container provides.
+lb_has() {
+	if [ "$(printf '%s' "${LB_HELP}" | wc -c)" -lt 200 ]; then
+		echo "W: [novaos] 'lb config --help' gave no usable output;" >&2
+		echo "W: [novaos] assuming modern Debian live-build option names." >&2
+		return 0
+	fi
+	printf '%s' "${LB_HELP}" | grep -q -- "$1"
+}
+
+OPTS=""
+
+# --- Bootloaders -------------------------------------------------------------
+# 4.x takes a plural, comma-separated list; 3.x takes a single value. Both are
+# needed for an image that boots on legacy BIOS (syslinux) and UEFI (grub-efi).
+if lb_has '--bootloaders'; then
+	OPTS="${OPTS} --bootloaders syslinux,grub-efi"
+elif lb_has '--bootloader'; then
+	OPTS="${OPTS} --bootloader syslinux"
+fi
+
+# --- Firmware ----------------------------------------------------------------
+# Ship non-free firmware in both the installer and the installed system, or
+# Wi-Fi will not work on most real consumer laptops.
+lb_has '--firmware-binary' && OPTS="${OPTS} --firmware-binary true"
+lb_has '--firmware-chroot' && OPTS="${OPTS} --firmware-chroot true"
+
+# --- Installer ---------------------------------------------------------------
+# Phase 1 has no graphical environment, so the installer must be text mode.
+lb_has '--debian-installer-gui' && OPTS="${OPTS} --debian-installer-gui false"
+
+# NOTE: --image-name is deliberately not used. It is absent from some versions,
+# and build.sh renames the artifact to novaos-<version>-amd64.hybrid.iso anyway.
 
 lb config noauto \
 	--distribution trixie \
@@ -18,18 +64,13 @@ lb config noauto \
 	--linux-flavours amd64 \
 	--archive-areas "main contrib non-free-firmware" \
 	--binary-images iso-hybrid \
-	--bootloaders "syslinux,grub-efi" \
 	--debian-installer live \
-	--debian-installer-gui false \
 	--apt-recommends false \
 	--apt-indices false \
 	--memtest none \
-	--firmware-binary true \
-	--firmware-chroot true \
 	--iso-application "NovaOS" \
 	--iso-publisher "NovaOS Project" \
-	--iso-volume "NovaOS $(cat "$(dirname "$0")/../../VERSION" 2>/dev/null || echo 0.1.0)" \
-	--image-name "novaos" \
+	--iso-volume "NovaOS" \
 	--bootappend-live "boot=live components quiet splash username=nova hostname=novaos" \
-	--bootappend-install "quiet" \
+	${OPTS} \
 	"${@}"
