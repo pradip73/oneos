@@ -1,0 +1,97 @@
+#!/bin/bash
+# OneOS - install an Android app from an .apk file.
+#
+# Invoked when someone double-clicks an APK. Waydroid normally needs three
+# separate terminal commands before an APK can be installed at all:
+#
+#     sudo waydroid init          # downloads ~700 MB, once per machine
+#     systemctl start waydroid-container
+#     waydroid app install file.apk
+#
+# A non-technical user will not do that, so this script does it for them,
+# asking only the questions that genuinely need an answer.
+#
+# The first run is the slow one: the Android system image is downloaded rather
+# than shipped in the ISO, because it would nearly double the image and it is
+# redistributed by the Waydroid project rather than by us.
+
+set -uo pipefail
+
+readonly APK="$1"
+
+msg()  { kdialog --title "OneOS" "$@" 2>/dev/null; }
+die_gui() {
+	msg --error "$1"
+	exit 1
+}
+
+[ -f "$APK" ] || die_gui "That file no longer exists:\n$APK"
+
+command -v waydroid >/dev/null 2>&1 || die_gui \
+	"Android app support is not installed on this system.
+
+It could not be included when this version of OneOS was built."
+
+name=$(basename "$APK")
+
+# --- First run: fetch the Android system image -------------------------------
+# waydroid init needs root, so it goes through pkexec and the user authenticates
+# in the normal desktop password dialog rather than a terminal.
+if [ ! -d /var/lib/waydroid ] || [ ! -f /var/lib/waydroid/waydroid.cfg ]; then
+	if ! kdialog --title "Set up Android apps?" \
+		--yesno "Android apps need a one-time setup of about <b>700 MB</b>.
+
+This happens once. After that, Android apps install straight away.
+
+Set it up now?" 2>/dev/null
+	then
+		exit 0
+	fi
+
+	( pkexec waydroid init >/tmp/oneos-wd.$$ 2>&1 ) &
+	init_pid=$!
+	notify-send -a "OneOS" "Setting up Android" \
+		"Downloading the Android system. This takes a few minutes." 2>/dev/null
+	wait $init_pid
+	if [ $? -ne 0 ]; then
+		err=$(tail -n 5 /tmp/oneos-wd.$$ 2>/dev/null); rm -f /tmp/oneos-wd.$$
+		die_gui "Android setup did not finish.
+
+$err"
+	fi
+	rm -f /tmp/oneos-wd.$$
+fi
+
+# --- Make sure the container is up -------------------------------------------
+# The container is disabled at boot on purpose: it costs 1-1.5 GB of RAM, which
+# the 4 GB target cannot spend before the user has asked for an Android app.
+# See ARCHITECTURE.md 4.2.
+if ! systemctl is-active --quiet waydroid-container.service; then
+	pkexec systemctl start waydroid-container.service || \
+		die_gui "Could not start the Android system."
+fi
+
+# waydroid session runs as the user and takes a moment to come up; the install
+# fails with a confusing error if it is not ready yet.
+if ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; then
+	waydroid session start >/dev/null 2>&1 &
+	for _ in $(seq 1 30); do
+		waydroid status 2>/dev/null | grep -q "Session:.*RUNNING" && break
+		sleep 1
+	done
+fi
+
+# --- Install ------------------------------------------------------------------
+notify-send -a "OneOS" "Installing" "$name" 2>/dev/null
+
+if out=$(waydroid app install "$APK" 2>&1); then
+	notify-send -a "OneOS" "Installed" \
+		"$name is now in your launcher." 2>/dev/null
+else
+	msg --sorry "${name} could not be installed.
+
+$(printf '%s' "$out" | tail -n 3)
+
+Apps built only for phone processors, or apps that check for Google Play, often will not install."
+	exit 1
+fi

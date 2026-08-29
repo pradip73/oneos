@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Android App
+Comment=Install an Android app
+Exec=oneos-install-apk %f
+Icon=phone
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.android.package-archive;
+Categories=System;

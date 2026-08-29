@@ -1,0 +1,91 @@
+#!/bin/bash
+# OneOS - install or run a Windows program.
+#
+# Invoked when someone double-clicks a .exe or .msi. Its job is to make that
+# gesture behave the way it does on Windows, without the user ever seeing the
+# word "wine" or typing a command.
+#
+# WHAT THIS IS NOT
+# This is not the Phase 4 prefix manager described in ARCHITECTURE.md 3.3-3.4.
+# There is NO SANDBOX here. A malicious .exe run through this script has the
+# user's full privileges and can read every file the user can, exactly as it
+# would on Windows. The bubblewrap confinement that fixes this is Phase 4 work.
+# The trust prompt below is a speed bump, not a security boundary, and it says
+# so to the user in plain words.
+#
+# What it does provide: one isolated WINEPREFIX per application, so installing
+# a second program cannot break the first -- the failure mode that makes shared
+# Wine setups rot over time.
+
+set -uo pipefail
+
+readonly APP="$1"
+readonly PREFIX_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/oneos/prefixes"
+
+die_gui() {
+	kdialog --title "OneOS" --error "$1" 2>/dev/null || printf '%s\n' "$1" >&2
+	exit 1
+}
+
+[ -f "$APP" ] || die_gui "That file no longer exists:\n$APP"
+
+command -v wine >/dev/null 2>&1 || die_gui \
+	"Windows program support is not installed on this system."
+
+name=$(basename "$APP")
+# One prefix per program. The slug is derived from the filename, so running the
+# same installer twice reuses its prefix instead of creating a second copy.
+slug=$(printf '%s' "${name%.*}" | tr -cd '[:alnum:]._-' | tr '[:upper:]' '[:lower:]')
+[ -n "$slug" ] || slug="program"
+prefix="${PREFIX_ROOT}/${slug}"
+
+# --- Trust prompt ------------------------------------------------------------
+# Deliberately blunt. Users have thirty years of training that .exe files are
+# how Windows machines get infected, and that training is correct here too.
+if ! kdialog --title "Run a Windows program?" \
+	--warningyesno "<b>${name}</b>
+
+This is a Windows program. OneOS can run it, but it will have access to your files, just as it would on Windows.
+
+Only continue if you trust where this file came from." 2>/dev/null
+then
+	exit 0
+fi
+
+# --- Prepare the prefix ------------------------------------------------------
+mkdir -p "$prefix" || die_gui "Could not create a workspace for this program."
+export WINEPREFIX="$prefix"
+export WINEDLLOVERRIDES="mscoree=d"   # skip the .NET installer nag on first run
+
+if [ ! -d "$prefix/drive_c" ]; then
+	( wineboot --init >/dev/null 2>&1 ) &
+	boot_pid=$!
+	kdialog --title "OneOS" --progressbar "Getting ready to run ${name}…" 0 >/tmp/oneos-dlg.$$ 2>/dev/null
+	dbusref=$(cat /tmp/oneos-dlg.$$ 2>/dev/null); rm -f /tmp/oneos-dlg.$$
+	wait $boot_pid
+	[ -n "${dbusref:-}" ] && qdbus $dbusref close 2>/dev/null
+fi
+
+# --- Run it ------------------------------------------------------------------
+# winemenubuilder writes .desktop entries into ~/.local/share/applications/wine
+# as the installer creates Start Menu shortcuts, so the program turns up in the
+# launcher on its own once installation finishes.
+cd "$(dirname "$APP")" || exit 1
+
+case "${name,,}" in
+	*.msi) wine msiexec /i "$APP" ;;
+	*)     wine "$APP" ;;
+esac
+status=$?
+
+if [ $status -eq 0 ]; then
+	notify-send -a "OneOS" "Finished" \
+		"If ${name} installed something, look for it in the launcher." 2>/dev/null
+else
+	kdialog --title "OneOS" --sorry \
+		"${name} did not run correctly.
+
+Not every Windows program works on OneOS. Programs needing anti-cheat, hardware drivers or very new Windows features generally will not." 2>/dev/null
+fi
+
+exit $status

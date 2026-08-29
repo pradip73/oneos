@@ -86,6 +86,19 @@ libvulkan1
 # here safely.
 lxc
 
+# --- File handlers -----------------------------------------------------------
+# Required by /usr/bin/oneos-install-exe and oneos-install-apk: kdialog draws
+# their prompts, notify-send their notifications, and pkexec authenticates the
+# one-time Waydroid setup. Without these the handlers fail silently.
+kdialog
+libnotify-bin
+# pkexec is its own binary package since polkit 122 -- polkitd alone does not
+# provide it, and the Waydroid setup in oneos-install-apk needs it to ask for
+# the password through the desktop instead of a terminal.
+pkexec
+desktop-file-utils
+shared-mime-info
+
 # --- Fonts -------------------------------------------------------------------
 fonts-noto
 fonts-noto-color-emoji

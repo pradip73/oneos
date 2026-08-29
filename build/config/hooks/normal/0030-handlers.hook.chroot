@@ -1,0 +1,26 @@
+#!/bin/sh
+# Registers the OneOS file handlers shipped in includes.chroot.
+#
+# Two things have to happen for a double-click to reach our scripts, and both
+# are easy to forget because nothing fails loudly when they are missing -- the
+# file just opens with the wrong thing, or with nothing.
+
+set -e
+
+echo "I: [oneos] registering file handlers"
+
+# 1. Execute permission. Git tracks the mode, but it does not survive every
+#    path a file can take into an image, and a handler that is not executable
+#    fails silently with "could not launch".
+chmod 0755 /usr/bin/oneos-install-exe /usr/bin/oneos-install-apk 2>/dev/null || true
+
+# 2. The desktop database. Until it is rebuilt, the MimeType= lines in our
+#    .desktop files are invisible to the file manager.
+if command -v update-desktop-database >/dev/null 2>&1; then
+	update-desktop-database /usr/share/applications || true
+fi
+if command -v update-mime-database >/dev/null 2>&1; then
+	update-mime-database /usr/share/mime || true
+fi
+
+echo "I: [oneos] file handlers registered"

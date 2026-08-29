@@ -1,0 +1,22 @@
+# OneOS default file handlers.
+#
+# Without these, double-clicking a .exe offers a bare "Open with" list, and a
+# .apk does nothing at all -- which is the single most common thing people try
+# first on an OS that claims to run Windows and Android software.
+
+[Default Applications]
+# Windows programs
+application/x-ms-dos-executable=oneos-install-exe.desktop
+application/x-msdownload=oneos-install-exe.desktop
+application/vnd.microsoft.portable-executable=oneos-install-exe.desktop
+application/x-msi=oneos-install-exe.desktop
+
+# Android apps
+application/vnd.android.package-archive=oneos-install-apk.desktop
+
+# Linux packages: hand these to the software centre, which already knows how to
+# resolve dependencies and ask for authentication.
+application/vnd.debian.binary-package=org.kde.discover.desktop
+application/x-deb=org.kde.discover.desktop
+application/vnd.flatpak=org.kde.discover.desktop
+application/vnd.flatpak.ref=org.kde.discover.desktop
