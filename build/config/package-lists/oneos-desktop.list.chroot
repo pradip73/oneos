@@ -1,0 +1,92 @@
+# OneOS Phase 1.5 -- interim desktop, Windows and Android support.
+#
+# WHY THIS FILE EXISTS
+# This is deliberately a borrowed desktop, not the OneOS shell. The real shell
+# is Phases 2-3 and roughly a year of work; this exists so the OS is usable in
+# the meantime and so the Wine and Waydroid layers can be integrated and tested
+# now rather than at the end. When the OneOS compositor lands, this list is
+# deleted and replaced -- it is scaffolding, not foundation.
+#
+# WHY KDE PLASMA, specifically
+#   - Waydroid REQUIRES a Wayland compositor. That rules out Xfce and LXQt,
+#     which are still X11 in practice, however much lighter they are.
+#   - Plasma is Qt-based, which matches the Qt/QML shell in ARCHITECTURE.md 2.2.
+#     Applications written now survive the transition; a GTK desktop would not.
+#   - It is themeable far enough to carry OneOS branding without patching it.
+#   - GNOME was rejected: libadwaita deliberately resists theming, and it is
+#     heavier than Plasma on the low-memory target.
+#
+# MEMORY: Plasma idles around 700 MB-1 GB. See README for what that does to the
+# 4 GB minimum once Waydroid is also running.
+
+# --- Display manager and session ---------------------------------------------
+sddm
+plasma-desktop
+plasma-workspace-wayland
+kwin-wayland
+systemsettings
+plasma-nm
+plasma-pa
+powerdevil
+kscreen
+plasma-disks
+
+# Xwayland: required by Wine, and by any application without a Wayland backend.
+xwayland
+
+# --- Audio -------------------------------------------------------------------
+# PipeWire, not PulseAudio. Waydroid and Wine both route through it, and it is
+# what ARCHITECTURE.md 2.4 commits to.
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+
+# --- Core applications -------------------------------------------------------
+dolphin
+konsole
+kate
+ark
+gwenview
+okular
+firefox-esr
+
+# --- App distribution --------------------------------------------------------
+# Flatpak for third-party apps, per ARCHITECTURE.md 6.3.
+flatpak
+plasma-discover
+plasma-discover-backend-flatpak
+xdg-desktop-portal
+xdg-desktop-portal-kde
+
+# --- Windows compatibility ---------------------------------------------------
+# 64-bit Wine only in this list. 32-bit Wine needs the i386 architecture
+# enabled, which cannot be expressed in a package list -- it is done in
+# config/hooks/normal/0020-compat.hook.chroot instead.
+#
+# NOTE: wine-binfmt is deliberately NOT installed. Registering .exe with
+# binfmt_misc makes any downloaded executable one chmod away from running.
+# See ARCHITECTURE.md 3.3 point 6.
+wine
+winetricks
+# Vulkan translation for Direct3D. Without these, games and GPU-accelerated
+# Windows apps fall back to a software renderer and crawl.
+vulkan-tools
+mesa-vulkan-drivers
+libvulkan1
+
+# --- Android compatibility ---------------------------------------------------
+# Waydroid needs binderfs in the kernel. Debian's stock kernel provides it;
+# the OneOS kernel guarantees it explicitly -- see kernel/oneos.config-fragment.
+# The Android image itself is NOT shipped here: it is ~700 MB and is fetched by
+# `waydroid init` on first use. See the honest limits in ARCHITECTURE.md 4.3.
+waydroid
+lxc
+
+# --- Fonts -------------------------------------------------------------------
+fonts-noto
+fonts-noto-color-emoji
+# Bengali, Devanagari and the other Indic scripts. Without this, Bangla renders
+# as boxes -- which for this project's audience is not a cosmetic problem.
+fonts-noto-core
+fonts-indic

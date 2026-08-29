@@ -1,0 +1,61 @@
+#!/bin/sh
+# Runs inside the chroot after the package lists are installed.
+#
+# Handles the two things a package list cannot express:
+#   1. enabling the i386 architecture so 32-bit Windows applications run
+#   2. preparing Waydroid without downloading its Android image at build time
+#
+# Deliberately tolerant: neither of these is worth failing the whole ISO build
+# over, so each step reports and continues. A missing wine32 costs 32-bit app
+# support; a build that dies costs everything.
+
+set -e
+
+echo "I: [oneos] configuring compatibility layers"
+
+# --- 32-bit Windows applications ---------------------------------------------
+# A very large share of Windows software is still 32-bit -- older installers,
+# line-of-business apps, and most games from before roughly 2015. 64-bit Wine
+# alone cannot run any of it, so this is not an optional extra.
+#
+# i386 has to be enabled with dpkg before apt can see wine32 at all, which is
+# why this cannot live in the package list.
+echo "I: [oneos] enabling i386 for 32-bit Wine"
+if dpkg --add-architecture i386 && apt-get update -qq; then
+	if apt-get install -y --no-install-recommends wine32; then
+		echo "I: [oneos] wine32 installed -- 32-bit Windows apps supported"
+	else
+		echo "W: [oneos] wine32 unavailable; 64-bit Windows apps only" >&2
+	fi
+else
+	echo "W: [oneos] could not enable i386; 64-bit Windows apps only" >&2
+fi
+
+# --- Waydroid ----------------------------------------------------------------
+# The Android system image is ~700 MB and is fetched by `waydroid init`. It is
+# not baked into the ISO: it would nearly double the download, and the image is
+# redistributed by the Waydroid project rather than by us.
+#
+# The service is left DISABLED. Waydroid's container costs 1-1.5 GB of RAM the
+# moment it starts, so on the 4 GB target it must not run until the user asks
+# for an Android app. See ARCHITECTURE.md 4.2 point 1.
+if [ -x /usr/bin/waydroid ]; then
+	systemctl disable waydroid-container.service 2>/dev/null || true
+	echo "I: [oneos] waydroid present, container disabled until first use"
+else
+	echo "W: [oneos] waydroid not installed on this image" >&2
+fi
+
+# --- Wine sandbox groundwork -------------------------------------------------
+# ARCHITECTURE.md 3.4 treats sandboxing Wine prefixes as mandatory, not
+# optional: a .exe from the internet otherwise runs with the user's full
+# privileges. bubblewrap is the mechanism; the prefix manager that uses it is
+# Phase 4 work and does not exist yet.
+#
+# Installing the tool now does NOT make anything safe. Until the prefix manager
+# ships, Windows applications on OneOS run unsandboxed, and the release notes
+# must say so plainly.
+apt-get install -y --no-install-recommends bubblewrap || \
+	echo "W: [oneos] bubblewrap unavailable" >&2
+
+echo "I: [oneos] compatibility layer configuration complete"

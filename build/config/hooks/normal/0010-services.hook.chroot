@@ -27,9 +27,10 @@ systemctl enable zramswap.service
 systemctl disable ssh.service 2>/dev/null || true
 
 # --- Boot behaviour ----------------------------------------------------------
-# Phase 1 has no desktop, so boot to a text console. This changes to
-# graphical.target in Phase 2 once the compositor exists.
-systemctl set-default multi-user.target
+# Boot into the graphical session. SDDM starts the Plasma Wayland session --
+# Wayland, not X11, because Waydroid cannot work without it.
+systemctl set-default graphical.target
+systemctl enable sddm.service
 
 # --- Base policy -------------------------------------------------------------
 # Members of 'sudo' get admin rights; the live user is added to it by

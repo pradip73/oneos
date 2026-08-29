@@ -11,7 +11,8 @@ A custom Linux-based desktop operating system.
 
 | | |
 |---|---|
-| **Minimum (full product)** | 4 GB RAM, dual-core x86-64, 32 GB storage |
+| **Minimum (desktop + Windows apps)** | 4 GB RAM, dual-core x86-64, 32 GB storage |
+| **Recommended (with Android apps)** | 8 GB RAM — Plasma idles near 1 GB and the Waydroid container adds 1–1.5 GB on top |
 | **Lite tier** | 2 GB RAM — desktop and browser only; the Windows and Android layers are **not offered** at this tier |
 | Architecture | x86-64 only for now; arm64 is a post-1.0 item |
 
@@ -66,9 +67,26 @@ From Windows, use Rufus or balenaEtcher in **DD / image mode** (not ISO mode —
 
 ## What this ISO does and does not do
 
-**Does:** boots on UEFI and legacy BIOS, reaches a text login, includes non-free firmware so Wi-Fi works on real laptops, ships the Debian installer so it can install onto a fresh machine, and applies the OneOS kernel tunables and zram configuration.
+**Does:** boots on UEFI and legacy BIOS into a **Plasma Wayland desktop**, includes
+non-free firmware so Wi-Fi works on real laptops, ships the Debian installer so it
+can install onto a fresh machine, runs **Windows `.exe` files through Wine** (64-bit
+and 32-bit, with DXVK-capable Vulkan drivers), carries **Waydroid for Android apps**,
+and applies the OneOS kernel tunables and zram configuration.
 
-**Does not:** no graphical desktop, no Windows compatibility, no Android compatibility, no atomic updates, no Secure Boot, no disk encryption by default. Every one of those is a later phase with its own milestone.
+**Does not:**
+
+- **This is not the OneOS shell.** The desktop is KDE Plasma with OneOS branding —
+  borrowed scaffolding so the OS is usable while the real compositor and shell are
+  built in Phases 2–3. See `build/config/package-lists/oneos-desktop.list.chroot`.
+- **Android needs one manual step.** `sudo waydroid init` downloads the ~700 MB
+  Android image on first use. It is not shipped in the ISO.
+- **Google Play Services do not work**, so banking apps, Netflix and anything using
+  Play Integrity will refuse to run. ARCHITECTURE.md §4.3 explains why this cannot
+  be fixed.
+- **Wine is not sandboxed yet.** A `.exe` you download runs with your full user
+  privileges and can read every file you can. The per-app prefix sandbox is Phase 4.
+  Treat Windows software on this image exactly as carefully as you would on Windows.
+- No atomic updates, no Secure Boot, no disk encryption by default. Later phases.
 
 ## Layout
 

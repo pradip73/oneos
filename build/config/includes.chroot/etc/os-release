@@ -1,10 +1,10 @@
-PRETTY_NAME="OneOS 0.1.0 (Phase 1 base)"
+PRETTY_NAME="OneOS 0.2.0"
 NAME="OneOS"
-VERSION_ID="0.1.0"
-VERSION="0.1.0 (phase1-base)"
-VERSION_CODENAME=phase1
+VERSION_ID="0.2.0"
+VERSION="0.2.0 (interim desktop)"
+VERSION_CODENAME=interim
 ID=oneos
 ID_LIKE=debian
-HOME_URL="https://example.invalid/"
-SUPPORT_URL="https://example.invalid/support"
-BUG_REPORT_URL="https://example.invalid/bugs"
+HOME_URL="https://github.com/pradip73/oneos"
+SUPPORT_URL="https://github.com/pradip73/oneos/issues"
+BUG_REPORT_URL="https://github.com/pradip73/oneos/issues"

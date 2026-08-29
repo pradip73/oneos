@@ -71,6 +71,6 @@ lb config noauto \
 	--iso-application "OneOS" \
 	--iso-publisher "OneOS Project" \
 	--iso-volume "OneOS" \
-	--bootappend-live "boot=live components quiet splash username=nova hostname=oneos" \
+	--bootappend-live "boot=live components quiet splash username=oneos hostname=oneos" \
 	${OPTS} \
 	"${@}"

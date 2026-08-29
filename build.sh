@@ -20,22 +20,22 @@ readonly VERSION="$(cat "${REPO_ROOT}/VERSION")"
 
 # Minimum free space for an ISO build.
 #
-# The finished ISO is only ~1.5 GB, but the build holds several uncompressed
-# stages on disk simultaneously:
+# The finished ISO is ~3-4 GB, but the build holds several uncompressed stages
+# on disk at once. With the Plasma desktop, Wine and Waydroid included:
 #
-#   apt cache (compressed .deb)      ~1.2 GB
-#   chroot/    (unpacked rootfs)     ~2.5 GB   <- .deb unpacks to 2-3x its size
-#   binary/    (staging + squashfs)  ~2.0 GB
-#   final ISO                        ~1.5 GB
+#   apt cache (compressed .deb)      ~3.5 GB
+#   chroot/    (unpacked rootfs)     ~9.0 GB   <- .deb unpacks to 2-3x its size
+#   binary/    (staging + squashfs)  ~5.0 GB
+#   final ISO                        ~3.5 GB
 #   ------------------------------------------
-#   peak concurrent                  ~7-8 GB
+#   peak concurrent                  ~18-22 GB
 #
-# 15 GB gives comfortable headroom for a failed build leaving stages behind.
+# 30 GB leaves headroom for a failed build that leaves stages behind.
 #
 # NOTE: building the custom kernel (Phase 1b, see kernel/README.md) is a
 # separate job and needs far more -- roughly 35 GB with debug info and BTF
 # enabled. Do not size your build volume from this number alone.
-readonly REQUIRED_FREE_GB=15
+readonly REQUIRED_FREE_GB=30
 
 log()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*" >&2; }
@@ -131,8 +131,11 @@ do_build() {
 	Next steps:
 	  1. Write to USB:   dd if=out/oneos-*.iso of=/dev/sdX bs=4M status=progress conv=fsync
 	     (on Windows, use Rufus or balenaEtcher in DD/image mode)
-	  2. Boot a test machine. You should reach a text login as user 'nova'.
-	  3. This ISO has NO desktop. That is expected -- see docs/BUILD-PLAN.md Phase 1.
+	  2. Boot a test machine. You should reach a graphical desktop.
+	  3. Android apps need one extra step on first use, because the Android
+	     image is downloaded rather than shipped:  sudo waydroid init
+	  4. The desktop is Plasma with OneOS branding, NOT the OneOS shell. That is
+	     still Phases 2-3 -- see docs/BUILD-PLAN.md.
 	EOF
 }
 
