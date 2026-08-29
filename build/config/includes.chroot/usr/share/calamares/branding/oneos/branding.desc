@@ -1,0 +1,51 @@
+---
+# OneOS installer branding.
+#
+# Structure follows design A -- the sidebar with all five steps visible --
+# because people are genuinely anxious while an installer is touching their
+# disk, and seeing where they are is worth more than a calmer empty screen.
+#
+# Wording follows design B: questions rather than nouns. "Where should OneOS
+# go?" tells you what is being asked; "Partitions" makes you work it out.
+
+componentName: oneos
+
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+
+windowExpanding: normal
+windowSize: 900px,560px
+windowPlacement: center
+
+sidebar: widget
+navigation: widget
+
+strings:
+    productName:         OneOS
+    shortProductName:    OneOS
+    version:             0.2
+    shortVersion:        0.2
+    versionedName:       OneOS 0.2
+    shortVersionedName:  OneOS 0.2
+    bootloaderEntryName: OneOS
+    productUrl:          https://github.com/pradip73/oneos
+    supportUrl:          https://github.com/pradip73/oneos/issues
+    knownIssuesUrl:      https://github.com/pradip73/oneos/issues
+    releaseNotesUrl:     https://github.com/pradip73/oneos/releases
+
+images:
+    productLogo:    "logo.png"
+    productIcon:    "logo.png"
+    productWelcome: "logo.png"
+
+style:
+    sidebarBackground:         "#0B6E5F"
+    sidebarText:               "#EAF6F3"
+    sidebarTextSelect:         "#0B6E5F"
+    sidebarBackgroundSelected: "#EAF6F3"
+
+# The slideshow runs during the copy step. Kept to plain text rather than a
+# carousel of marketing: eight minutes of honest information beats eight
+# minutes of claims the OS cannot yet keep.
+slideshow: "show.qml"
+slideshowAPI: 2

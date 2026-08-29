@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- OneOS mark: the IEC power glyph (broken ring + bar), with a flag on the
+     bar so it also reads as the numeral 1.
+     RING_OFFSET is substituted at build time to produce the boot animation
+     frames; 82 is a fully open ring, 14 is closed. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <circle cx="32" cy="35" r="13" fill="none" stroke="GLYPH_COLOR" stroke-width="5.5"
+          stroke-linecap="round" stroke-dasharray="82" stroke-dashoffset="RING_OFFSET"
+          transform="rotate(-90 32 35)"/>
+  <path d="M24.5 18.5 L29.6 14.6" stroke="GLYPH_COLOR" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <rect x="29.25" y="13" width="5.5" height="22" rx="2.75" fill="GLYPH_COLOR"/>
+</svg>

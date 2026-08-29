@@ -103,6 +103,22 @@ shared-mime-info
 # "Desktop" -- so hardcoding the path would put icons somewhere invisible.
 xdg-user-dirs
 
+# --- Boot splash and installer -----------------------------------------------
+# plymouth draws the boot splash; librsvg2-bin renders the mark from the single
+# SVG in the repository at build time, so the artwork has one source of truth
+# rather than committed PNGs that drift.
+plymouth
+plymouth-themes
+librsvg2-bin
+
+# Calamares is the graphical installer. calamares-settings-debian supplies a
+# tested module configuration; only the branding is overridden, in
+# config/hooks/normal/0040-branding.hook.chroot. Writing our own settings.conf
+# would mean owning partitioning behaviour, which is where installers destroy
+# people's data.
+calamares
+calamares-settings-debian
+
 # --- Fonts -------------------------------------------------------------------
 fonts-noto
 fonts-noto-color-emoji

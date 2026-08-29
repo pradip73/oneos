@@ -1,0 +1,91 @@
+#!/bin/sh
+# Renders the OneOS mark and activates the boot splash.
+#
+# The logo lives in the repository as a single SVG. Plymouth cannot read SVG,
+# so the PNGs it needs are rendered here at build time rather than committed as
+# binaries -- one source of truth, and the frames stay in sync with the artwork
+# automatically.
+#
+# Every step degrades rather than failing: a boot splash is not worth losing an
+# ISO over. Without the frames the splash is a static mark, and without the mark
+# Plymouth falls back to its own default theme.
+
+set -e
+
+readonly SRC=/usr/share/oneos/oneos-mark.svg
+readonly DEST=/usr/share/plymouth/themes/oneos
+readonly FRAMES=24
+
+echo "I: [oneos] rendering boot splash artwork"
+
+if [ ! -f "$SRC" ]; then
+	echo "W: [oneos] $SRC missing -- keeping the default Plymouth theme" >&2
+	exit 0
+fi
+
+if ! command -v rsvg-convert >/dev/null 2>&1; then
+	echo "W: [oneos] rsvg-convert unavailable -- no splash artwork" >&2
+	exit 0
+fi
+
+# The still mark, used if the animation frames are unusable.
+sed -e "s/RING_OFFSET/14/" -e "s/GLYPH_COLOR/#EAF6F3/" "$SRC" > /tmp/oneos-mark.svg
+rsvg-convert -w 512 -h 512 -o "$DEST/logo.png" /tmp/oneos-mark.svg || \
+	echo "W: [oneos] could not render logo.png" >&2
+
+# Animation frames: the ring gap closing from 82 (fully open) to 14 (closed).
+# 24 frames at ~5 refresh ticks each is about 2.5 seconds, which is close to
+# the boot time we are aiming for on the target hardware.
+i=0
+while [ "$i" -lt "$FRAMES" ]; do
+	# Integer arithmetic only -- sh has no floats.
+	offset=$(( 82 - ( (82 - 14) * i / (FRAMES - 1) ) ))
+	sed -e "s/RING_OFFSET/${offset}/" -e "s/GLYPH_COLOR/#EAF6F3/" "$SRC" > /tmp/oneos-frame.svg
+	rsvg-convert -w 512 -h 512 -o "${DEST}/ring-${i}.png" /tmp/oneos-frame.svg 2>/dev/null || true
+	i=$(( i + 1 ))
+done
+rm -f /tmp/oneos-mark.svg /tmp/oneos-frame.svg
+echo "I: [oneos] rendered $(ls -1 ${DEST}/ring-*.png 2>/dev/null | wc -l) animation frames"
+
+# --- Activate ----------------------------------------------------------------
+# Plymouth picks its theme through the alternatives system on Debian. Setting
+# the file alone is not enough; the initramfs has to be rebuilt or the old
+# theme keeps showing, which is the classic "I changed it and nothing happened"
+# failure here.
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+	if plymouth-set-default-theme oneos 2>/dev/null; then
+		echo "I: [oneos] boot splash set to oneos"
+	else
+		echo "W: [oneos] could not set the default theme" >&2
+	fi
+fi
+
+if command -v update-initramfs >/dev/null 2>&1; then
+	update-initramfs -u || echo "W: [oneos] initramfs rebuild failed; splash may not appear" >&2
+fi
+
+# --- Installer branding ------------------------------------------------------
+# Calamares needs the logo as a PNG too. Rendered from the same SVG so the
+# installer and the boot splash can never drift apart.
+readonly CAL=/usr/share/calamares/branding/oneos
+if [ -d "$CAL" ] && command -v rsvg-convert >/dev/null 2>&1; then
+	sed -e "s/RING_OFFSET/14/" -e "s/GLYPH_COLOR/#EAF6F3/" "$SRC" > /tmp/oneos-cal.svg
+	rsvg-convert -w 256 -h 256 -o "${CAL}/logo.png" /tmp/oneos-cal.svg 2>/dev/null || \
+		echo "W: [oneos] could not render the installer logo" >&2
+	rm -f /tmp/oneos-cal.svg
+fi
+
+# Point Calamares at our branding. calamares-settings-debian ships a working
+# settings.conf; rewriting it wholesale would mean owning every module choice,
+# so only the branding line is changed. If the shipped file ever stops naming a
+# branding component this quietly does nothing, which is why it is checked.
+if [ -f /etc/calamares/settings.conf ]; then
+	if grep -q '^branding:' /etc/calamares/settings.conf; then
+		sed -i 's/^branding:.*/branding: oneos/' /etc/calamares/settings.conf
+		echo "I: [oneos] installer branding set to oneos"
+	else
+		echo "W: [oneos] settings.conf has no branding line -- installer keeps Debian branding" >&2
+	fi
+else
+	echo "W: [oneos] calamares settings.conf not found" >&2
+fi

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=OneOS
+Description=OneOS boot splash - the mark on a field of the product's colour
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/oneos
+ScriptFile=/usr/share/plymouth/themes/oneos/oneos.script
