@@ -12,7 +12,7 @@ echo "I: [oneos] registering file handlers"
 # 1. Execute permission. Git tracks the mode, but it does not survive every
 #    path a file can take into an image, and a handler that is not executable
 #    fails silently with "could not launch".
-chmod 0755 /usr/bin/oneos-install-exe /usr/bin/oneos-install-apk 2>/dev/null || true
+chmod 0755 /usr/bin/oneos-install-exe /usr/bin/oneos-install-apk /usr/bin/oneos-install-deb 2>/dev/null || true
 
 # 2. The desktop database. Until it is rebuilt, the MimeType= lines in our
 #    .desktop files are invisible to the file manager.

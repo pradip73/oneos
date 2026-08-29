@@ -1,0 +1,57 @@
+#!/bin/bash
+# OneOS - install a Linux program from a .deb file.
+#
+# WHY THIS EXISTS
+# The obvious answer is to hand .deb files to Discover, and that was the first
+# attempt. It does not work: Discover can only install local packages through
+# its PackageKit backend, and a desktop that does not ship PackageKit gets a
+# software centre that opens, shows nothing useful, and installs nothing --
+# with no error to explain why.
+#
+# Routing through apt directly is both smaller and more predictable. apt
+# resolves dependencies from the archive, so a .deb that needs three libraries
+# installs cleanly instead of failing the way `dpkg -i` would.
+
+set -uo pipefail
+
+readonly DEB="$1"
+
+die_gui() {
+	kdialog --title "OneOS" --error "$1" 2>/dev/null || printf '%s\n' "$1" >&2
+	exit 1
+}
+
+[ -f "$DEB" ] || die_gui "That file no longer exists:\n$DEB"
+
+name=$(basename "$DEB")
+
+# Read the package's own metadata so the prompt names the software rather than
+# the filename, which is often a version-stamped mess.
+pkg=$(dpkg-deb -f "$DEB" Package 2>/dev/null) || \
+	die_gui "${name} is not a valid Linux package file."
+ver=$(dpkg-deb -f "$DEB" Version 2>/dev/null)
+desc=$(dpkg-deb -f "$DEB" Description 2>/dev/null | head -n 1)
+
+if ! kdialog --title "Install this program?" \
+	--yesno "<b>${pkg}</b> ${ver:-}
+
+${desc:-A Linux program.}
+
+Installing software changes this computer for everyone who uses it, so you will be asked for your password." 2>/dev/null
+then
+	exit 0
+fi
+
+# pkexec puts the password prompt in the normal desktop dialog rather than a
+# terminal. apt-get install on a local path pulls dependencies from the archive.
+if out=$(pkexec env DEBIAN_FRONTEND=noninteractive \
+		apt-get install -y --no-install-recommends "$DEB" 2>&1); then
+	notify-send -a "OneOS" "Installed" "${pkg} is now in your launcher." 2>/dev/null
+else
+	kdialog --title "OneOS" --sorry "${pkg} could not be installed.
+
+$(printf '%s' "$out" | grep -E '^E:' | tail -n 3)
+
+Packages built for a different version of Linux often cannot be installed." 2>/dev/null
+	exit 1
+fi

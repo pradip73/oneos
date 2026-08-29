@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Program
+Comment=Install a Linux program
+Exec=oneos-install-deb %f
+Icon=system-software-install
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.debian.binary-package;application/x-deb;application/x-debian-package;
+Categories=System;

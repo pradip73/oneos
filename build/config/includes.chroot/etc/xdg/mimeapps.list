@@ -14,9 +14,17 @@ application/x-msi=oneos-install-exe.desktop
 # Android apps
 application/vnd.android.package-archive=oneos-install-apk.desktop
 
-# Linux packages: hand these to the software centre, which already knows how to
-# resolve dependencies and ask for authentication.
-application/vnd.debian.binary-package=org.kde.discover.desktop
-application/x-deb=org.kde.discover.desktop
+# Linux packages.
+#
+# These do NOT go to Discover. Discover installs local .deb files only through
+# its PackageKit backend, so without PackageKit it opens, shows nothing useful
+# and installs nothing -- silently. oneos-install-deb calls apt directly, which
+# also resolves dependencies properly.
+application/vnd.debian.binary-package=oneos-install-deb.desktop
+application/x-deb=oneos-install-deb.desktop
+application/x-debian-package=oneos-install-deb.desktop
+
+# Flatpak references are different: Discover handles these natively through the
+# flatpak backend, which we do ship.
 application/vnd.flatpak=org.kde.discover.desktop
 application/vnd.flatpak.ref=org.kde.discover.desktop
