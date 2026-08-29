@@ -72,6 +72,10 @@ fi
 # launcher on its own once installation finishes.
 cd "$(dirname "$APP")" || exit 1
 
+# Wine's winemenubuilder writes the launcher entry as the installer creates its
+# Start Menu shortcut, so diffing around the run catches whatever it added.
+snap=$(mktemp); oneos-shortcuts scan > "$snap"
+
 case "${name,,}" in
 	*.msi) wine msiexec /i "$APP" ;;
 	*)     wine "$APP" ;;
@@ -79,8 +83,12 @@ esac
 status=$?
 
 if [ $status -eq 0 ]; then
+	# winemenubuilder writes the launcher entry slightly after the installer
+	# itself exits, so give it a moment before looking for what appeared.
+	sleep 2
+	oneos-shortcuts place "$snap"
 	notify-send -a "OneOS" "Finished" \
-		"If ${name} installed something, look for it in the launcher." 2>/dev/null
+		"If ${name} installed something, look on the desktop and in the launcher." 2>/dev/null
 else
 	kdialog --title "OneOS" --sorry \
 		"${name} did not run correctly.
@@ -88,4 +96,5 @@ else
 Not every Windows program works on OneOS. Programs needing anti-cheat, hardware drivers or very new Windows features generally will not." 2>/dev/null
 fi
 
+rm -f "$snap"
 exit $status

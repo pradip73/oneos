@@ -42,16 +42,25 @@ then
 	exit 0
 fi
 
+# Snapshot the menu first, so a desktop icon is created for what this package
+# adds and not for the dependencies it drags in.
+snap=$(mktemp)
+oneos-shortcuts scan > "$snap"
+
 # pkexec puts the password prompt in the normal desktop dialog rather than a
 # terminal. apt-get install on a local path pulls dependencies from the archive.
 if out=$(pkexec env DEBIAN_FRONTEND=noninteractive \
 		apt-get install -y --no-install-recommends "$DEB" 2>&1); then
-	notify-send -a "OneOS" "Installed" "${pkg} is now in your launcher." 2>/dev/null
+	oneos-shortcuts place "$snap"
+	rm -f "$snap"
+	notify-send -a "OneOS" "Installed" \
+		"${pkg} is on the desktop and in your launcher." 2>/dev/null
 else
 	kdialog --title "OneOS" --sorry "${pkg} could not be installed.
 
 $(printf '%s' "$out" | grep -E '^E:' | tail -n 3)
 
 Packages built for a different version of Linux often cannot be installed." 2>/dev/null
+	rm -f "$snap"
 	exit 1
 fi

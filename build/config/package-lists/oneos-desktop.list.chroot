@@ -98,6 +98,10 @@ libnotify-bin
 pkexec
 desktop-file-utils
 shared-mime-info
+# xdg-user-dirs provides xdg-user-dir, which oneos-shortcuts uses to find the
+# desktop folder. Its name is localised -- on a Bengali system it is not
+# "Desktop" -- so hardcoding the path would put icons somewhere invisible.
+xdg-user-dirs
 
 # --- Fonts -------------------------------------------------------------------
 fonts-noto

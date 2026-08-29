@@ -84,14 +84,23 @@ fi
 # --- Install ------------------------------------------------------------------
 notify-send -a "OneOS" "Installing" "$name" 2>/dev/null
 
+# Waydroid exports a .desktop entry for the app once it is installed.
+snap=$(mktemp)
+oneos-shortcuts scan > "$snap"
+
 if out=$(waydroid app install "$APK" 2>&1); then
+	# The export happens a moment after the install command returns.
+	sleep 3
+	oneos-shortcuts place "$snap"
+	rm -f "$snap"
 	notify-send -a "OneOS" "Installed" \
-		"$name is now in your launcher." 2>/dev/null
+		"$name is on the desktop and in your launcher." 2>/dev/null
 else
 	msg --sorry "${name} could not be installed.
 
 $(printf '%s' "$out" | tail -n 3)
 
 Apps built only for phone processors, or apps that check for Google Play, often will not install."
+	rm -f "$snap"
 	exit 1
 fi

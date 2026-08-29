@@ -1,0 +1,92 @@
+#!/bin/bash
+# OneOS - put newly installed programs on the desktop.
+#
+# WHY THIS EXISTS
+# Linux convention is that installing a program adds it to the application
+# menu and leaves the desktop alone. Windows convention is that the installer
+# offers a desktop icon and usually creates one. Neither is wrong, but a user
+# arriving from Windows installs something, looks at the desktop, sees nothing,
+# and concludes the installation failed.
+#
+# So OneOS follows the Windows convention: a program you install yourself gets
+# a desktop icon. Programs that arrive as dependencies do not -- which is why
+# this works by diffing before and after a single install, rather than mirroring
+# the whole menu onto the desktop.
+#
+# Usage:
+#   oneos-shortcuts scan            print the current set of menu entries
+#   oneos-shortcuts place SNAPSHOT  create icons for entries added since SNAPSHOT
+#
+# Turn it off system-wide in /etc/oneos/shortcuts.conf, or per user in
+# ~/.config/oneos/shortcuts.conf, with:  ENABLED=no
+
+set -uo pipefail
+
+readonly USER_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+readonly SYS_APPS="/usr/share/applications"
+
+ENABLED=yes
+[ -r /etc/oneos/shortcuts.conf ] && . /etc/oneos/shortcuts.conf
+[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/oneos/shortcuts.conf" ] && \
+	. "${XDG_CONFIG_HOME:-$HOME/.config}/oneos/shortcuts.conf"
+
+# The desktop folder is localised -- on a Bengali or Hindi system it is not
+# called "Desktop". xdg-user-dir knows the right name; falling back to ~/Desktop
+# only when it is unavailable.
+desktop_dir() {
+	local d
+	d=$(xdg-user-dir DESKTOP 2>/dev/null)
+	[ -n "$d" ] && [ "$d" != "$HOME" ] && { printf '%s' "$d"; return; }
+	printf '%s' "$HOME/Desktop"
+}
+
+do_scan() {
+	find "$USER_APPS" "$SYS_APPS" -name '*.desktop' -type f 2>/dev/null | sort
+}
+
+do_place() {
+	local snapshot="$1"
+	[ "$ENABLED" = "yes" ] || return 0
+	[ -r "$snapshot" ] || return 0
+
+	local dest count=0
+	dest=$(desktop_dir)
+	mkdir -p "$dest" || return 0
+
+	# Entries present now but not in the snapshot.
+	while IFS= read -r entry; do
+		[ -n "$entry" ] || continue
+
+		# Skip anything not meant to be launched: our own file handlers are
+		# NoDisplay, and so are the pile of helper entries most desktops carry.
+		grep -qi '^NoDisplay=true' "$entry" && continue
+		grep -qi '^Type=Application' "$entry" || continue
+		# Wine writes an entry for its own tools alongside the real program.
+		case "$(basename "$entry")" in
+			wine-*|winetricks*|oneos-install-*) continue ;;
+		esac
+
+		local target="${dest}/$(basename "$entry")"
+		[ -e "$target" ] && continue
+
+		if cp "$entry" "$target" 2>/dev/null; then
+			# KDE refuses to launch a desktop file that is not executable, and
+			# shows it as a text file instead. This is the step everyone
+			# forgets.
+			chmod +x "$target"
+			# Plasma 6 additionally wants the file marked trusted.
+			command -v kwriteconfig6 >/dev/null 2>&1 && \
+				gio set "$target" metadata::trusted true 2>/dev/null
+			count=$((count + 1))
+		fi
+	done < <(comm -13 "$snapshot" <(do_scan))
+
+	[ $count -gt 0 ] && printf 'placed %d shortcut(s)\n' "$count"
+	return 0
+}
+
+case "${1:-}" in
+	scan)  do_scan ;;
+	place) do_place "${2:-}" ;;
+	*)     printf 'Usage: %s scan | place SNAPSHOT\n' "$(basename "$0")" >&2; exit 2 ;;
+esac
