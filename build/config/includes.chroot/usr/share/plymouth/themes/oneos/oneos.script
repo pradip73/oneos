@@ -50,8 +50,12 @@ rail_height = 3;
 rail_x = (screen_width - rail_width) / 2;
 rail_y = screen_height * 0.82;
 
-rail_bg = Image.Text("", 1, 1, 1);
-progress = 0;
+// Plymouth's script module cannot draw a rectangle. Image.Text() with an empty
+// string returns a zero-size image, so the earlier attempt to build the rail
+// that way drew nothing at all. The bar is a PNG, rendered at build time and
+// scaled here.
+rail_image = Image("rail.png");
+
 ticks = 0;
 
 fun refresh_callback() {
@@ -78,26 +82,22 @@ fun refresh_callback() {
     }
 
     // Only now, and only if we are still here, admit that boot is slow.
-    if (ticks == rail_delay_ticks) {
-        rail_track = Image.Text("", 1, 1, 1).Scale(rail_width, rail_height);
-        rail_track_sprite = Sprite(rail_track);
+    if (ticks == rail_delay_ticks && rail_image) {
+        rail_track_sprite = Sprite(rail_image.Scale(rail_width, rail_height));
         rail_track_sprite.SetX(rail_x);
         rail_track_sprite.SetY(rail_y);
         rail_track_sprite.SetOpacity(0.18);
 
-        rail_fill_sprite = Sprite();
-        rail_fill_sprite.SetX(rail_x);
+        rail_fill_sprite = Sprite(rail_image.Scale(rail_width * 0.3, rail_height));
         rail_fill_sprite.SetY(rail_y);
         rail_fill_sprite.SetOpacity(0.85);
     }
 
     if (ticks > rail_delay_ticks && rail_fill_sprite) {
-        // Indeterminate: a short bar sweeping across, because boot time varies
-        // with disk, firmware and pending updates and we cannot honestly
+        // Indeterminate: a short bar sweeping back and forth, because boot time
+        // varies with disk, firmware and pending updates and we cannot honestly
         // promise a percentage.
-        sweep = ((ticks - rail_delay_ticks) % 100) / 100;
-        bar = Image.Text("", 1, 1, 1).Scale(rail_width * 0.3, rail_height);
-        rail_fill_sprite.SetImage(bar);
+        sweep = ((ticks - rail_delay_ticks) % 120) / 120;
         rail_fill_sprite.SetX(rail_x + (rail_width * 0.7 * sweep));
     }
 }

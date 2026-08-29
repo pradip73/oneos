@@ -44,7 +44,16 @@ while [ "$i" -lt "$FRAMES" ]; do
 	rsvg-convert -w 512 -h 512 -o "${DEST}/ring-${i}.png" /tmp/oneos-frame.svg 2>/dev/null || true
 	i=$(( i + 1 ))
 done
-rm -f /tmp/oneos-mark.svg /tmp/oneos-frame.svg
+# The progress rail. Plymouth's script module has no primitive for drawing a
+# rectangle, so the bar has to arrive as an image like everything else.
+cat > /tmp/oneos-rail.svg <<'RAILSVG'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 6" width="400" height="24">
+  <rect x="0" y="0" width="100" height="6" rx="3" fill="#FFFFFF"/>
+</svg>
+RAILSVG
+rsvg-convert -w 400 -h 24 -o "$DEST/rail.png" /tmp/oneos-rail.svg 2>/dev/null || 	echo "W: [oneos] could not render rail.png -- the slow-boot bar will not appear" >&2
+
+rm -f /tmp/oneos-mark.svg /tmp/oneos-frame.svg /tmp/oneos-rail.svg
 echo "I: [oneos] rendered $(ls -1 ${DEST}/ring-*.png 2>/dev/null | wc -l) animation frames"
 
 # --- Activate ----------------------------------------------------------------
