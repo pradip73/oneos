@@ -17,6 +17,14 @@
 live-boot
 live-config
 live-config-systemd
+# user-setup is what live-config actually calls to create the live user, and it
+# is another Recommends. Missing it produces the most confusing failure of the
+# lot: the hostname is set and getty is configured for automatic login, so
+# live-config is plainly working -- but the account it tries to log in as was
+# never created, and the console just says "Authentication failure".
+user-setup
+# sudo and passwd are what user-setup uses to finish the account.
+passwd
 
 # --- Boot and init -----------------------------------------------------------
 systemd
