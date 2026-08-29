@@ -1,0 +1,39 @@
+#!/bin/sh
+# live-config component: log the live user straight into the desktop.
+#
+# WHY IT LIVES HERE AND NOT IN includes.chroot/etc
+# Files under includes.chroot end up on the INSTALLED system too, and automatic
+# login without a password on an installed machine is indefensible. Scripts in
+# /lib/live/config only run when booting the live image, so the installed
+# system keeps its normal login screen.
+#
+# Without this, someone who boots a OneOS USB stick to try it out is stopped by
+# a password prompt for an account they have never heard of. That is the first
+# thing they see, and for most people it is where they stop.
+
+set -e
+
+Autologin() {
+	# live-config exports the username configured by --bootappend-live.
+	_USER="${LIVE_USERNAME:-oneos}"
+
+	mkdir -p /etc/sddm.conf.d
+
+	# Session=plasma is the Wayland session, which is what OneOS targets and
+	# what Waydroid requires.
+	#
+	# Relogin=false matters more than it looks: if Wayland fails to start --
+	# which happens in virtual machines with little video memory -- SDDM falls
+	# back to the greeter instead of looping. The user can then pick
+	# Plasma (X11) and get a desktop rather than a black screen.
+	cat > /etc/sddm.conf.d/zz-oneos-live.conf <<SDDMEOF
+[Autologin]
+User=${_USER}
+Session=plasma
+Relogin=false
+SDDMEOF
+
+	chmod 0644 /etc/sddm.conf.d/zz-oneos-live.conf
+}
+
+Autologin

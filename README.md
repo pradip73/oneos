@@ -75,6 +75,10 @@ and applies the OneOS kernel tunables and zram configuration.
 
 **Does not:**
 
+- **In a virtual machine, pick the Plasma (X11) session.** VirtualBox's graphics
+  driver handles Wayland poorly, especially below 128 MB of video memory, and you
+  will get a black screen. On real hardware use Wayland — it is the default and
+  Waydroid requires it, so Android apps do not work under X11.
 - **This is not the OneOS shell.** The desktop is KDE Plasma with OneOS branding —
   borrowed scaffolding so the OS is usable while the real compositor and shell are
   built in Phases 2–3. See `build/config/package-lists/oneos-desktop.list.chroot`.
