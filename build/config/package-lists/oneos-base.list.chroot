@@ -4,6 +4,20 @@
 # 4 GB / dual-core minimum spec. Nothing in this file is a desktop component --
 # the compositor and shell arrive in Phases 2 and 3 and get their own list.
 
+# --- Live session ------------------------------------------------------------
+# These MUST be listed explicitly. live-build pulls in live-boot and
+# live-config on its own, but live-config-systemd is only a Recommends of
+# live-config -- and we build with --apt-recommends false, so it was silently
+# dropped.
+#
+# Without live-config-systemd not one live-config component runs at boot, which
+# means the live user named in --bootappend-live is never created. The symptom
+# is a login screen with an empty user list and no way in: the system boots
+# perfectly and is completely unusable.
+live-boot
+live-config
+live-config-systemd
+
 # --- Boot and init -----------------------------------------------------------
 systemd
 systemd-sysv
