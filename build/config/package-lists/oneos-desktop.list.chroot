@@ -22,14 +22,15 @@
 # --- Display manager and session ---------------------------------------------
 sddm
 plasma-desktop
-plasma-workspace-wayland
+# NOTE: plasma-workspace-wayland does not exist in Plasma 6 -- the Wayland
+# session was merged into plasma-workspace, which plasma-desktop pulls in.
+# Asking for the old Plasma 5 package name fails the build outright.
 kwin-wayland
 systemsettings
 plasma-nm
 plasma-pa
 powerdevil
 kscreen
-plasma-disks
 
 # Xwayland: required by Wine, and by any application without a Wayland backend.
 xwayland
@@ -76,11 +77,13 @@ mesa-vulkan-drivers
 libvulkan1
 
 # --- Android compatibility ---------------------------------------------------
-# Waydroid needs binderfs in the kernel. Debian's stock kernel provides it;
-# the OneOS kernel guarantees it explicitly -- see kernel/oneos.config-fragment.
-# The Android image itself is NOT shipped here: it is ~700 MB and is fetched by
-# `waydroid init` on first use. See the honest limits in ARCHITECTURE.md 4.3.
-waydroid
+# Waydroid is NOT in the Debian archive. It ships from the Waydroid project's
+# own repository, so it is installed in
+# config/hooks/normal/0020-compat.hook.chroot where a failure to reach that
+# repository degrades to "no Android support" instead of killing the build.
+#
+# lxc is Waydroid's container runtime and is in Debian, so it can be listed
+# here safely.
 lxc
 
 # --- Fonts -------------------------------------------------------------------

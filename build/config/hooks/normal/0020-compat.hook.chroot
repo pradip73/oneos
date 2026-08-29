@@ -32,19 +32,41 @@ else
 fi
 
 # --- Waydroid ----------------------------------------------------------------
-# The Android system image is ~700 MB and is fetched by `waydroid init`. It is
-# not baked into the ISO: it would nearly double the download, and the image is
-# redistributed by the Waydroid project rather than by us.
+# Waydroid is NOT in the Debian archive. It is published from the project's own
+# repository, so it is installed here rather than from a package list: if that
+# repository is unreachable or has no build for our suite, this degrades to
+# "no Android support" instead of failing the entire ISO.
 #
-# The service is left DISABLED. Waydroid's container costs 1-1.5 GB of RAM the
-# moment it starts, so on the 4 GB target it must not run until the user asks
-# for an Android app. See ARCHITECTURE.md 4.2 point 1.
-if [ -x /usr/bin/waydroid ]; then
-	systemctl disable waydroid-container.service 2>/dev/null || true
-	echo "I: [oneos] waydroid present, container disabled until first use"
+# This does add a third-party APT source to the image, which is a real trust
+# decision -- whoever controls repo.waydro.id can ship code to OneOS users. It
+# is signed, and it is the same source the Waydroid project tells everyone to
+# use, but it is worth revisiting before any release that calls itself stable.
+echo "I: [oneos] installing Waydroid from its upstream repository"
+if curl -fsSL --retry 3 https://repo.waydro.id/waydroid.gpg \
+		-o /usr/share/keyrings/waydroid.gpg; then
+	# The project builds for Debian's stable suites; bookworm packages work on
+	# trixie because Waydroid is mostly Python plus a systemd unit.
+	echo "deb [signed-by=/usr/share/keyrings/waydroid.gpg] https://repo.waydro.id/ bookworm main" \
+		> /etc/apt/sources.list.d/waydroid.list
+	if apt-get update -qq && apt-get install -y --no-install-recommends waydroid; then
+		# Leave the container DISABLED. It costs 1-1.5 GB of RAM the moment it
+		# starts, which the 4 GB target cannot spend before the user has asked
+		# for a single Android app. See ARCHITECTURE.md 4.2 point 1.
+		systemctl disable waydroid-container.service 2>/dev/null || true
+		echo "I: [oneos] waydroid installed, container disabled until first use"
+	else
+		rm -f /etc/apt/sources.list.d/waydroid.list
+		apt-get update -qq || true
+		echo "W: [oneos] waydroid package unavailable -- image ships WITHOUT Android support" >&2
+	fi
 else
-	echo "W: [oneos] waydroid not installed on this image" >&2
+	echo "W: [oneos] could not fetch the Waydroid signing key -- no Android support" >&2
 fi
+
+# The Android system image is a further ~700 MB and is fetched by
+# `waydroid init` on first use. It is deliberately not baked in: it would
+# nearly double the ISO, and it is redistributed by the Waydroid project
+# rather than by us.
 
 # --- Wine sandbox groundwork -------------------------------------------------
 # ARCHITECTURE.md 3.4 treats sandboxing Wine prefixes as mandatory, not
