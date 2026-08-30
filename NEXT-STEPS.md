@@ -1,103 +1,90 @@
-# How to get your ISO
+# Where the project stands
 
-You do not want to install anything on this machine. That's fine — **Route A below
-needs nothing installed locally and no reboot.**
+Last updated at the end of the first build-and-test session.
 
-But one fact cannot be worked around: **an ISO cannot be built on Windows.**
-`debootstrap`, `live-build` and the kernel toolchain are Linux-only and there is no
-cross-build path. So the build has to happen on *some* Linux machine — it just
-doesn't have to be yours.
+## What OneOS is right now
 
----
+**Version 0.2** — a working Debian-based desktop OS with Windows and Android
+compatibility layers, built entirely in GitHub Actions. It boots, reaches a
+Plasma desktop, and carries OneOS branding.
 
-## Route A — build in the cloud (recommended, nothing installed locally)
+**The ISO to use is the newest successful run:**
+https://github.com/pradip73/oneos/actions → open the top green run → Artifacts →
+`oneos-0.2.0-amd64-iso` (~2.7 GB)
 
-A cloud runner builds the ISO and hands you a download link. Your machine stays
-exactly as it is.
+## Verified working in a VM
 
-1. Create a repository on GitHub (free; a private repo is fine).
+- Boots on UEFI
+- Kernel, graphics stack and SDDM start
+- **Plasma desktop reaches the user** (this took six failed builds to achieve)
+- Debian text installer runs
+- NetworkManager connects
 
-2. Push this folder to it:
+## Fixed but NOT yet tested
 
-   ```bash
-   git init
-   git add -A
-   git commit -m "OneOS Phase 1 base"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/oneos.git
-   git push -u origin main
-   ```
+Everything below is written and built but has never been run. This is the list
+to work through first:
 
-3. The build starts automatically. Watch it in the repo's **Actions** tab
-   (~25–40 minutes).
+- [ ] DNS resolution (`ping debian.org` from a terminal)
+- [ ] Boot splash — the teal screen with the OneOS mark
+- [ ] Wallpaper, accent colour and login-screen branding
+- [ ] Desktop icon reads **Install OneOS**, not Install Debian
+- [ ] Bengali text renders as letters, not boxes
+- [ ] Double-click a `.deb` → installs
+- [ ] Double-click an `.exe` → trust prompt → runs
+- [ ] Double-click an `.apk` → offers the one-time Android setup
+- [ ] Installed programs appear on the desktop by themselves
+- [ ] **Calamares actually installs to disk** — never once run; test in a VM only
 
-4. When it finishes, open the run and download the
-   **`oneos-0.1.0-amd64-iso`** artifact from the Artifacts section.
+## The plan, in order
 
-5. Unzip it, then write the `.iso` to a USB stick with **Rufus** or
-   **balenaEtcher** in **DD / image mode** — not ISO mode, this is a hybrid image.
+1. **Verify the list above.** Everything after this is built on guesses until
+   it is done.
+2. **Sandbox Wine.** Right now a downloaded `.exe` has full access to the user's
+   files. `docs/ARCHITECTURE.md` §3.4 calls this mandatory and it is still owed.
+   Do not put this OS in anyone else's hands before it is fixed.
+3. **Test on real hardware.** Wi-Fi, suspend/resume, battery, brightness keys,
+   and Waydroid — none of which a VM can tell you anything about.
+4. **0.3:** own welcome app, Waydroid working, 4 GB machine test.
+5. **Own foundations:** custom kernel (Phase 1b), own APT repo, A/B updates.
+6. **The real OneOS:** Phase 2 compositor, Phase 3 shell — 8–12 months. Plasma
+   is deleted at that point.
 
-6. Boot the target machine from that USB.
+## Designs
 
-The workflow is [.github/workflows/build-iso.yml](.github/workflows/build-iso.yml).
-It also runs on self-hosted Forgejo or Gitea with only the `runs-on` label changed,
-if you'd rather not depend on GitHub long term.
+- Desktop, glass, Control Panel, This computer:
+  https://claude.ai/code/artifact/621b35a8-165c-486e-a850-f486a7c37721
+- Logo, boot splash, installer:
+  https://claude.ai/code/artifact/a788ae82-a516-4627-b957-c19624dd87e8
 
-**Caveat worth knowing:** GitHub Actions is a third-party service, which sits
-against your "self-hosted, open toolchain" preference from the brief. For a Phase 1
-base image with no secrets in it, that trade is reasonable. Revisit it before you
-ship signed production images — those must be built somewhere you control, because
-whoever builds your images can put anything in them.
+## Testing in VirtualBox — settings that matter
 
----
+| | |
+|---|---|
+| RAM | 4096 MB tests the real minimum spec; more is fine for feature testing |
+| Video memory | **128 MB** — less than this and the desktop will not start |
+| Session | Pick **Plasma (X11)** at the login screen; VirtualBox handles Wayland poorly |
+| EFI | Enable it |
 
-## Route B — build locally in WSL2 (needs one reboot)
+Android will not work in a VM at all, and Wine's GPU acceleration will not
+either. Both need real hardware.
 
-Already 90% done. WSL2 core is installed and Virtual Machine Platform is enabled;
-only the reboot is outstanding.
+## Things that are true and easy to forget
 
-WSL2 does **not** install an OS on your disk. It's a Windows feature running a Linux
-userland in a lightweight VM — no partitioning, and Windows is untouched. But it
-does need one restart.
+- **This is not the OneOS shell.** The desktop is KDE Plasma wearing OneOS
+  colours. The real one is Phase 2–3.
+- **Android needs `sudo waydroid init` once** — a ~700 MB download.
+- **Google Play does not work**, so banking apps and Netflix will refuse to run.
+  This cannot be fixed; see `docs/ARCHITECTURE.md` §4.3.
+- **Wine is not sandboxed yet.** Treat `.exe` files exactly as carefully as on
+  Windows.
 
-If you change your mind:
+## Lessons from the failures, so they are not repeated
 
-1. Restart Windows.
-2. Run:
-
-   ```
-   powershell -ExecutionPolicy Bypass -File .\setup.ps1
-   ```
-
-That script does everything: installs Debian, installs dependencies, copies the repo
-onto the Linux filesystem, builds the ISO, and drops it in `C:\oneos-out\`.
-
----
-
-## Route C — a spare machine or a VPS
-
-Any Debian or Ubuntu machine works:
-
-```bash
-git clone <your-repo> && cd oneos
-bash ./bootstrap.sh
-```
-
-A €5/month VPS builds this comfortably.
-
----
-
-## What you will actually get
-
-Phase 1 base image. It:
-
-- boots on UEFI and legacy BIOS
-- reaches a **text login** — user `nova`
-- includes non-free firmware so Wi-Fi works on real laptops
-- carries the Debian installer, so it installs onto a fresh machine
-- applies the OneOS kernel tunables and zram configuration
-
-It does **not** have a graphical desktop. That is Phase 2 (compositor) and Phase 3
-(shell) — several months of work each, per [docs/BUILD-PLAN.md](docs/BUILD-PLAN.md).
-When you boot the target machine and see a black screen with a login prompt, nothing
-has gone wrong. That is the Phase 1 milestone.
+- `--apt-recommends false` silently dropped `user-setup`, so the live user was
+  never created. The build was green and the ISO was unusable.
+- Packages that work on an installed system can break a live ISO: `dracut`
+  conflicts with `live-boot`, and `systemd-boot`'s postinst needs a real ESP.
+- Ubuntu's `live-build` is a fork of Debian's with different option names. The
+  build runs in a Debian container for that reason.
+- Plymouth's script module cannot draw a rectangle; every shape must be a PNG.
