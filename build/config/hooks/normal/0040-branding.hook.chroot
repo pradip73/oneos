@@ -98,3 +98,29 @@ if [ -f /etc/calamares/settings.conf ]; then
 else
 	echo "W: [oneos] calamares settings.conf not found" >&2
 fi
+
+# --- Installer launcher ------------------------------------------------------
+# calamares-settings-debian ships the desktop entry that appears on the live
+# desktop, and it says "Install Debian". Changing the branding component inside
+# Calamares does not touch it -- so the first thing a user sees on the OneOS
+# desktop is an invitation to install a different operating system.
+#
+# Rewritten in place rather than shipped as our own file, so it keeps whatever
+# Exec line and permissions the package uses.
+for entry in /usr/share/applications/calamares*.desktop \
+             /usr/share/applications/install-debian.desktop; do
+	[ -f "$entry" ] || continue
+	sed -i \
+		-e 's/^Name=.*/Name=Install OneOS/' \
+		-e 's/^GenericName=.*/GenericName=System Installer/' \
+		-e 's/^Comment=.*/Comment=Install OneOS on this computer/' \
+		-e '/^Name\[/d' -e '/^GenericName\[/d' -e '/^Comment\[/d' \
+		"$entry"
+	echo "I: [oneos] renamed $(basename "$entry")"
+done
+
+# live-config copies that entry onto the live desktop at boot, so the icon the
+# user actually clicks picks up the rename too.
+if command -v update-desktop-database >/dev/null 2>&1; then
+	update-desktop-database /usr/share/applications || true
+fi

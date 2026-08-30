@@ -9,6 +9,14 @@ echo "I: [oneos] configuring services"
 # --- Services that must be on at boot ----------------------------------------
 systemctl enable systemd-timesyncd.service
 systemctl enable systemd-resolved.service
+
+# systemd-resolved only actually resolves names if /etc/resolv.conf points at
+# its stub. The package normally creates this symlink in its postinst, but that
+# does not reliably happen inside a live-build chroot -- and when it is missing
+# the failure is maddening: NetworkManager reports "Connected", packets reach
+# the internet, and every hostname fails to resolve. The machine looks online
+# and behaves as though it is not.
+ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 systemctl enable NetworkManager.service
 systemctl enable bluetooth.service
 
