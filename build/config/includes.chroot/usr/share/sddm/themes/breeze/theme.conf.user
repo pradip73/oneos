@@ -1,0 +1,5 @@
+# Overrides Breeze's packaged theme.conf without editing it, so a package
+# upgrade cannot silently revert the branding.
+[General]
+background=/usr/share/wallpapers/OneOS/contents/images/1920x1080.png
+type=image

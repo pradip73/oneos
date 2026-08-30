@@ -1,0 +1,19 @@
+# OneOS Plasma defaults.
+#
+# KConfig cascades: files in /etc/xdg are defaults, and anything the user
+# changes is written to ~/.config and wins. So this sets the OneOS look on
+# first login without ever fighting a user who prefers something else.
+#
+# The accent is the same teal as the mark, the boot splash and the installer.
+# One colour across the whole system is most of what makes a desktop feel
+# designed rather than assembled.
+
+[General]
+AccentColor=11,110,95
+LastUsedCustomAccentColor=11,110,95
+
+[KDE]
+widgetStyle=Breeze
+# Single-click to open is Plasma's default and confuses everyone arriving from
+# Windows, who then open things twice. Double-click matches what they know.
+SingleClick=false

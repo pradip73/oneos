@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- OneOS default wallpaper.
+     Deliberately quieter than the boot splash. A boot screen is seen for four
+     seconds and should be bold; a wallpaper sits behind everything all day and
+     must never compete with the windows on top of it. Same teal identity, much
+     lower saturation, and the ring motif only as a faint echo. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#0E3A34"/>
+      <stop offset="55%"  stop-color="#0A2621"/>
+      <stop offset="100%" stop-color="#061512"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="18%" cy="12%" r="65%">
+      <stop offset="0%"   stop-color="#0B6E5F" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0B6E5F" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="88%" cy="94%" r="55%">
+      <stop offset="0%"   stop-color="#12796C" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#12796C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#ground)"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <rect width="1920" height="1080" fill="url(#glow2)"/>
+
+  <!-- The mark's ring, enormous and almost invisible. Present if you look for
+       it, never noticeable behind a window. -->
+  <g opacity="0.05" fill="none" stroke="#7FE3CE" stroke-linecap="round">
+    <circle cx="1480" cy="300" r="360" stroke-width="2"
+            stroke-dasharray="2262" stroke-dashoffset="420" transform="rotate(-90 1480 300)"/>
+    <circle cx="1480" cy="300" r="250" stroke-width="1.5"
+            stroke-dasharray="1571" stroke-dashoffset="300" transform="rotate(-90 1480 300)"/>
+  </g>
+</svg>

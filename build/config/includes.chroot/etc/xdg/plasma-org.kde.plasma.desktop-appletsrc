@@ -1,0 +1,13 @@
+# OneOS desktop defaults: wallpaper and the folder-view containment.
+#
+# Containment 1 is the desktop itself. Setting org.kde.plasma.folder rather
+# than org.kde.plasma.desktop is deliberate -- it is what makes icons on the
+# desktop appear at all, which the installed-program shortcuts depend on.
+
+[Containments][1]
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.image
+
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=/usr/share/wallpapers/OneOS/
+SlidePaths=/usr/share/wallpapers/

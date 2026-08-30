@@ -73,6 +73,21 @@ if command -v update-initramfs >/dev/null 2>&1; then
 	update-initramfs -u || echo "W: [oneos] initramfs rebuild failed; splash may not appear" >&2
 fi
 
+# --- Wallpaper ---------------------------------------------------------------
+# Rendered at build time from SVG for the same reason as the mark: one source
+# of truth. Two sizes because Plasma picks the closest match and upscaling a
+# 1080p image onto a 4K panel looks obviously cheap.
+readonly WALL=/usr/share/wallpapers/OneOS/contents/images
+readonly WALLSRC=/usr/share/oneos/oneos-wallpaper.svg
+if [ -f "$WALLSRC" ] && command -v rsvg-convert >/dev/null 2>&1; then
+	mkdir -p "$WALL"
+	rsvg-convert -w 1920 -h 1080 -o "$WALL/1920x1080.png" "$WALLSRC" 2>/dev/null || 		echo "W: [oneos] could not render the 1080p wallpaper" >&2
+	rsvg-convert -w 3840 -h 2160 -o "$WALL/3840x2160.png" "$WALLSRC" 2>/dev/null || 		echo "W: [oneos] could not render the 4K wallpaper" >&2
+	echo "I: [oneos] wallpaper rendered"
+else
+	echo "W: [oneos] wallpaper source missing -- Plasma keeps the Debian default" >&2
+fi
+
 # --- Installer branding ------------------------------------------------------
 # Calamares needs the logo as a PNG too. Rendered from the same SVG so the
 # installer and the boot splash can never drift apart.

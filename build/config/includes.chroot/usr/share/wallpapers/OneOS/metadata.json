@@ -1,0 +1,8 @@
+{
+    "KPlugin": {
+        "Id": "OneOS",
+        "Name": "OneOS",
+        "License": "GPL-3.0-or-later",
+        "Authors": [ { "Name": "OneOS Project" } ]
+    }
+}
