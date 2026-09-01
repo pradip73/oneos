@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Id": "org.oneos.launcher",
+        "Name": "OneOS Launcher",
+        "Description": "The OneOS start menu",
+        "Icon": "start-here",
+        "Category": "Application Launchers",
+        "License": "GPL-3.0-or-later",
+        "Authors": [ { "Name": "OneOS Project" } ],
+        "ServiceTypes": [ "Plasma/Applet" ]
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

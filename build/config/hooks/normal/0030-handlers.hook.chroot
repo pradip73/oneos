@@ -30,3 +30,16 @@ if command -v update-mime-database >/dev/null 2>&1; then
 fi
 
 echo "I: [oneos] file handlers registered"
+
+# --- OneOS Plasma applets ----------------------------------------------------
+# A plasmoid that fails to parse simply does not appear, with the reason only
+# in the session log -- so check it here, where the build output is read.
+if [ -d /usr/share/plasma/plasmoids/org.oneos.launcher ]; then
+	if command -v qmllint6 >/dev/null 2>&1; then
+		qmllint6 /usr/share/plasma/plasmoids/org.oneos.launcher/contents/ui/main.qml \
+			|| echo "W: [oneos] launcher QML has warnings (may still load)" >&2
+	fi
+	echo "I: [oneos] OneOS launcher applet installed"
+else
+	echo "W: [oneos] OneOS launcher applet missing" >&2
+fi
