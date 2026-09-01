@@ -1,0 +1,116 @@
+#!/bin/sh
+# Preinstalls Windows programs, and stages Android apps, into the image.
+#
+# WHY
+# The point of OneOS is that it runs software from three platforms. A user who
+# boots it and has to download something before seeing that happen has to take
+# the claim on trust first. Shipping working examples of each removes the step
+# where they have to believe us.
+#
+# WHAT IS POSSIBLE, HONESTLY
+#   Linux    - ordinary packages, already in the package lists.
+#   Windows  - a Wine prefix built here, with portable applications unpacked
+#              into it. Entirely doable; this hook does it.
+#   Android  - NOT possible. The Android system image is ~700 MB and is not in
+#              the ISO, so at build time there is no Android to install an APK
+#              into. The APKs are staged in the image instead and installed the
+#              moment the user completes the one-time Android setup, so no
+#              download is needed then.
+#
+# Everything degrades: a failure here costs the preinstalled apps, never the
+# ISO. The download-on-first-run launchers remain as the fallback path.
+
+set -e
+
+readonly VLC_VER="3.0.21"
+readonly NPP_VER="8.6.9"
+readonly SKEL="/etc/skel/.local/share/oneos/prefixes/oneos-bundled"
+readonly APKDIR="/usr/share/oneos/android-apps"
+
+echo "I: [oneos] preinstalling cross-platform applications"
+
+# =============================================================================
+# Windows
+# =============================================================================
+# One shared prefix for the bundled programs rather than one each. Per-app
+# prefixes exist so that a program a USER installs cannot break another one --
+# these are ours, fixed, and verified together, so a second 350 MB prefix would
+# buy nothing. Anything the user installs still gets its own.
+if ! command -v wine >/dev/null 2>&1; then
+	echo "W: [oneos] wine missing -- no Windows programs preinstalled" >&2
+elif ! command -v xvfb-run >/dev/null 2>&1; then
+	# wineboot wants a display even when it draws nothing.
+	echo "W: [oneos] xvfb missing -- no Windows programs preinstalled" >&2
+else
+	mkdir -p "$SKEL"
+	echo "I: [oneos] creating the bundled Wine prefix"
+	if WINEPREFIX="$SKEL" WINEDLLOVERRIDES="mscoree,mshtml=" \
+			xvfb-run -a wine wineboot --init >/dev/null 2>&1; then
+
+		DRIVE="${SKEL}/drive_c"
+		mkdir -p "${DRIVE}/Program Files"
+		tmp=$(mktemp -d)
+
+		# --- VLC ---------------------------------------------------------
+		# Portable zip: no installer to run unattended, and the same binary
+		# people run on Windows.
+		if curl -fsSL --retry 3 -o "$tmp/vlc.zip" \
+				"https://get.videolan.org/vlc/${VLC_VER}/win64/vlc-${VLC_VER}-win64.zip" \
+			&& unzip -q -o "$tmp/vlc.zip" -d "$tmp/vlcx"; then
+			mkdir -p "${DRIVE}/Program Files/VLC"
+			cp -r "$tmp"/vlcx/vlc-*/. "${DRIVE}/Program Files/VLC/"
+			echo "I: [oneos] VLC for Windows preinstalled"
+		else
+			echo "W: [oneos] could not fetch VLC for Windows" >&2
+		fi
+
+		# --- Notepad++ ---------------------------------------------------
+		if curl -fsSL --retry 3 -o "$tmp/npp.zip" \
+				"https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v${NPP_VER}/npp.${NPP_VER}.portable.x64.zip" \
+			&& unzip -q -o "$tmp/npp.zip" -d "${DRIVE}/Program Files/Notepad++"; then
+			echo "I: [oneos] Notepad++ preinstalled"
+		else
+			echo "W: [oneos] could not fetch Notepad++" >&2
+		fi
+
+		rm -rf "$tmp"
+
+		# GPL compliance. Both programs are GPL, so distributing their binaries
+		# carries an obligation to make the corresponding source available. A
+		# written offer naming where to get it satisfies that, and costs a file.
+		mkdir -p /usr/share/doc/oneos
+		cat > /usr/share/doc/oneos/BUNDLED-WINDOWS-SOURCES.txt <<'SRC'
+OneOS ships two Windows programs that are free software. Their licences
+require that the corresponding source code is available to anyone who
+receives the binaries. It is:
+
+  VLC media player (GPLv2 or later)
+      https://www.videolan.org/vlc/download-sources.html
+      https://code.videolan.org/videolan/vlc
+
+  Notepad++ (GPLv3)
+      https://github.com/notepad-plus-plus/notepad-plus-plus
+
+Neither program is modified in any way by OneOS; the binaries shipped are
+the unaltered portable releases published by their authors.
+SRC
+	else
+		echo "W: [oneos] wineboot failed -- no Windows programs preinstalled" >&2
+	fi
+fi
+
+# =============================================================================
+# Android
+# =============================================================================
+# These cannot be installed now -- there is no Android in the image to install
+# them into. Staging them means the user's first Android setup ends with
+# working apps instead of an empty launcher and another download.
+mkdir -p "$APKDIR"
+if curl -fsSL --retry 3 -o "$APKDIR/fdroid.apk" "https://f-droid.org/F-Droid.apk"; then
+	echo "I: [oneos] F-Droid staged for first Android setup"
+else
+	echo "W: [oneos] could not stage F-Droid" >&2
+	rm -f "$APKDIR/fdroid.apk"
+fi
+
+echo "I: [oneos] preinstall step complete"

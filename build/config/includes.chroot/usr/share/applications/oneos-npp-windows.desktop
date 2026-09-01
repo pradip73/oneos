@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Notepad++ (Windows)
+GenericName=Text editor
+Comment=A Windows text editor, preinstalled and running on OneOS
+Exec=oneos-run-bundled "Program Files/Notepad++/notepad++.exe" %f
+Icon=accessories-text-editor
+Terminal=false
+Categories=Utility;TextEditor;

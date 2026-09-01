@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=VLC (Windows version)
+GenericName=Media player
+Comment=The real Windows build of VLC, preinstalled and running on OneOS
+Exec=oneos-run-bundled "Program Files/VLC/vlc.exe" %f
+Icon=vlc
+Terminal=false
+Categories=AudioVideo;Player;

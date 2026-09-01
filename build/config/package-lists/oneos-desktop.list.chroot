@@ -130,6 +130,12 @@ mesa-utils
 unzip
 curl
 
+# wineboot needs a display even when it draws nothing, so the build-time
+# creation of the bundled Wine prefix runs under a virtual one. Small, and it
+# is the difference between shipping working Windows programs and shipping a
+# download button.
+xvfb
+
 # --- Boot splash and installer -----------------------------------------------
 # plymouth draws the boot splash; librsvg2-bin renders the mark from the single
 # SVG in the repository at build time, so the artwork has one source of truth

@@ -1,0 +1,20 @@
+#!/bin/sh
+# Launches a Windows program that was preinstalled into the bundled prefix.
+#
+#   oneos-run-bundled "Program Files/VLC/vlc.exe"
+#
+# The prefix is copied out of /etc/skel into each user's home, so the path is
+# per-user and cannot be baked into a .desktop file.
+
+set -eu
+PREFIX="${XDG_DATA_HOME:-$HOME/.local/share}/oneos/prefixes/oneos-bundled"
+EXE="${PREFIX}/drive_c/$1"; shift
+
+if [ ! -f "$EXE" ]; then
+	kdialog --title "OneOS" --sorry "That Windows program is not installed.
+
+It may have failed to download when this image was built." 2>/dev/null
+	exit 1
+fi
+
+exec oneos-wine-run "$PREFIX" wine "$EXE" "$@"

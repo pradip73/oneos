@@ -41,13 +41,21 @@ if ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; then
 	done
 fi
 
+# Prefer the copy staged in the image at build time -- no download, and it
+# works on a machine that is offline right after setup.
+STAGED=/usr/share/oneos/android-apps/fdroid.apk
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
-notify-send -a "OneOS" "Downloading F-Droid" "An app store for Android software." 2>/dev/null
-curl -fsSL --retry 3 -o "$tmp/fdroid.apk" "$URL" || {
-	dlg --sorry "The download did not finish. Check that you are online."; exit 1; }
+if [ -f "$STAGED" ]; then
+	apk="$STAGED"
+else
+	notify-send -a "OneOS" "Downloading F-Droid" "An app store for Android software." 2>/dev/null
+	curl -fsSL --retry 3 -o "$tmp/fdroid.apk" "$URL" || {
+		dlg --sorry "The download did not finish. Check that you are online."; exit 1; }
+	apk="$tmp/fdroid.apk"
+fi
 
-if out=$(waydroid app install "$tmp/fdroid.apk" 2>&1); then
+if out=$(waydroid app install "$apk" 2>&1); then
 	dlg --msgbox "<b>F-Droid is installed.</b>
 
 It is in your launcher, and it is where Android apps come from on OneOS — the Google Play Store does not work here.
