@@ -1,0 +1,81 @@
+#!/bin/bash
+# OneOS - Android apps settings.
+#
+# The other Control Panel tile with nothing behind it. Waydroid's own interface
+# is a set of terminal commands, and the state a user needs to understand --
+# is Android set up, is it running, why did that app refuse to install -- is
+# spread across `waydroid status`, systemctl, and the log.
+#
+# The single most important thing this screen does is state the Google Play
+# limitation without being asked. A user whose banking app refuses to open will
+# otherwise assume OneOS is broken, and they will be right to.
+
+set -uo pipefail
+
+dlg() { kdialog --title "Android apps" "$@" 2>/dev/null; }
+
+if ! command -v waydroid >/dev/null 2>&1; then
+	dlg --error "Android app support is not installed on this system.
+
+It could not be included when this version of OneOS was built."
+	exit 1
+fi
+
+initialised=false
+[ -f /var/lib/waydroid/waydroid.cfg ] && initialised=true
+
+session_running() {
+	waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"
+}
+
+while true; do
+	if ! $initialised; then
+		state="Not set up yet. Android needs a one-time ~700 MB download."
+	elif session_running; then
+		state="Running. Android is using about 1–1.5 GB of memory."
+	else
+		state="Set up, not running. It starts when you open an Android app."
+	fi
+
+	choice=$(dlg --menu "$(printf '%s\n\nApps that check for Google Play — banking, Netflix and\nmost paid streaming — will not run. This cannot be fixed.' "$state")" \
+		setup   "Set up Android (one-time download)" \
+		start   "Start Android now" \
+		stop    "Stop Android and free its memory" \
+		apps    "Open the Android settings app" \
+		close   "Close") || exit 0
+
+	case "$choice" in
+	setup)
+		if $initialised; then
+			dlg --msgbox "Android is already set up."
+			continue
+		fi
+		dlg --yesno "Download and set up Android now?
+
+This is about 700 MB and happens once." || continue
+		if pkexec waydroid init; then
+			initialised=true
+			dlg --msgbox "Android is ready. Double-click any .apk file to install an app."
+		else
+			dlg --sorry "Setup did not finish. Check that you are online and try again."
+		fi
+		;;
+	start)
+		$initialised || { dlg --sorry "Set Android up first."; continue; }
+		pkexec systemctl start waydroid-container.service 2>/dev/null || true
+		session_running || (waydroid session start >/dev/null 2>&1 &)
+		dlg --msgbox "Starting Android. It takes a few seconds the first time."
+		;;
+	stop)
+		waydroid session stop >/dev/null 2>&1 || true
+		pkexec systemctl stop waydroid-container.service 2>/dev/null || true
+		dlg --msgbox "Android stopped. Its memory is free again."
+		;;
+	apps)
+		$initialised || { dlg --sorry "Set Android up first."; continue; }
+		session_running || { dlg --sorry "Start Android first."; continue; }
+		waydroid app launch com.android.settings >/dev/null 2>&1 &
+		;;
+	*) exit 0 ;;
+	esac
+done

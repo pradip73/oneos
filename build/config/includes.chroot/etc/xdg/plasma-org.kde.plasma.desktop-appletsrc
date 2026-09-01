@@ -29,3 +29,10 @@ plugin=org.kde.plasma.taskmanager
 [Containments][2][Applets][3][Configuration][General]
 showToolTips=true
 groupingStrategy=0
+
+# Start menu favourites -- the "Everyday" row from the launcher design, plus
+# the two tiles that are the point of this OS. Same fragility as the taskbar
+# setting above: Plasma may rewrite the layout on first login.
+[Containments][2][Applets][4][Configuration][General]
+favorites=firefox-esr.desktop,org.kde.dolphin.desktop,oneos-windows-settings.desktop,oneos-android-settings.desktop,org.kde.konsole.desktop,oneos-control-panel.desktop,oneos-about.desktop
+showAppsByName=true

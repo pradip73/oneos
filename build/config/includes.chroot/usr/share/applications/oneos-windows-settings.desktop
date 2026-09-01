@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Windows apps
+GenericName=Windows compatibility
+Comment=Where Windows programs save files, and how to remove them
+Exec=oneos-windows-settings
+Icon=wine
+Terminal=false
+Categories=System;Settings;

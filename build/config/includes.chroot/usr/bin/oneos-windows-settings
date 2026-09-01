@@ -1,0 +1,98 @@
+#!/bin/bash
+# OneOS - Windows apps settings.
+#
+# The Control Panel design put "Windows apps" beside Network and Display rather
+# than in an Advanced page, because it is one of the reasons someone chose this
+# OS. This is what sits behind that tile.
+#
+# What a person actually needs here, in order of how often they need it:
+#   1. where do the files my Windows programs save end up?
+#   2. how do I remove one, properly, including its several hundred megabytes?
+#   3. one program is misbehaving -- can I change its settings?
+#
+# winecfg answers only the third, and answers it in vocabulary nobody outside
+# the Wine project shares. So this wraps it.
+
+set -uo pipefail
+
+readonly PREFIX_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/oneos/prefixes"
+readonly SHARED="$(xdg-user-dir DOCUMENTS 2>/dev/null || echo "$HOME/Documents")/Windows files"
+
+dlg() { kdialog --title "Windows apps" "$@" 2>/dev/null; }
+
+if ! command -v wine >/dev/null 2>&1; then
+	dlg --error "Windows program support is not installed on this system."
+	exit 1
+fi
+
+# Sandbox state is the one thing here worth stating plainly and unprompted.
+if command -v bwrap >/dev/null 2>&1; then
+	sandbox="Each program runs sealed off from your files."
+else
+	sandbox="<b>Warning:</b> the sandbox is missing. Windows programs can read all your files."
+fi
+
+list_apps() {
+	[ -d "$PREFIX_ROOT" ] || return 0
+	for d in "$PREFIX_ROOT"/*/; do
+		[ -d "$d" ] || continue
+		printf '%s\n' "$(basename "$d")"
+	done
+}
+
+while true; do
+	apps=$(list_apps)
+	count=$(printf '%s' "$apps" | grep -c . || true)
+
+	choice=$(dlg --menu "$(printf 'Wine %s · %d program(s) installed\n\n%s' \
+			"$(wine --version 2>/dev/null | sed 's/^wine-//')" "$count" "$sandbox")" \
+		folder  "Open the shared folder (${count:+Documents / Windows files})" \
+		settings "Change a program's settings" \
+		remove  "Remove a program and free its space" \
+		close   "Close") || exit 0
+
+	case "$choice" in
+	folder)
+		mkdir -p "$SHARED"
+		xdg-open "$SHARED" >/dev/null 2>&1 &
+		;;
+	settings|remove)
+		[ "$count" -gt 0 ] || { dlg --sorry "No Windows programs are installed yet.
+
+Double-click any .exe file to install one."; continue; }
+
+		# Build the radiolist arguments from the prefix directories.
+		args=()
+		first=on
+		while IFS= read -r a; do
+			[ -n "$a" ] || continue
+			sz=$(du -sh "$PREFIX_ROOT/$a" 2>/dev/null | cut -f1)
+			args+=("$a" "$a  (${sz:-?})" "$first")
+			first=off
+		done <<< "$apps"
+
+		app=$(dlg --radiolist "Which program?" "${args[@]}") || continue
+		[ -n "$app" ] || continue
+
+		if [ "$choice" = "settings" ]; then
+			oneos-wine-run "$PREFIX_ROOT/$app" winecfg &
+		else
+			if dlg --warningyesno "Remove <b>${app}</b> and everything it saved inside itself?
+
+Files you put in <b>Documents / Windows files</b> are kept."; then
+				rm -rf -- "${PREFIX_ROOT:?}/${app:?}"
+				# The launcher entries Wine created point at a prefix that is
+				# now gone; leaving them means menu items that do nothing.
+				find "${XDG_DATA_HOME:-$HOME/.local/share}/applications" \
+					-name '*.desktop' -exec grep -l "prefixes/${app}" {} + 2>/dev/null \
+					| xargs -r rm -f
+				find "$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")" \
+					-name '*.desktop' -exec grep -l "prefixes/${app}" {} + 2>/dev/null \
+					| xargs -r rm -f
+				dlg --msgbox "${app} was removed."
+			fi
+		fi
+		;;
+	*) exit 0 ;;
+	esac
+done

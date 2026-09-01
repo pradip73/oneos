@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Android apps
+GenericName=Android compatibility
+Comment=Set up Android, start or stop it, free its memory
+Exec=oneos-android-settings
+Icon=phone
+Terminal=false
+Categories=System;Settings;
