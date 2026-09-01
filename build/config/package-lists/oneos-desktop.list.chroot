@@ -51,6 +51,10 @@ ark
 gwenview
 okular
 firefox-esr
+# The Linux side of the three-way demonstration: native VLC, sitting in the
+# menu next to the Windows build of the same program. Seeing both run is the
+# clearest possible proof of what this OS does.
+vlc
 
 # --- App distribution --------------------------------------------------------
 # Flatpak for third-party apps, per ARCHITECTURE.md 6.3.
@@ -119,6 +123,12 @@ xdg-utils
 # machines that most need it to.
 pciutils
 mesa-utils
+
+# unzip unpacks the portable Windows VLC in oneos-demo-windows; curl fetches it
+# and the F-Droid APK. Both demos fail with a confusing "download did not
+# finish" if these are absent.
+unzip
+curl
 
 # --- Boot splash and installer -----------------------------------------------
 # plymouth draws the boot splash; librsvg2-bin renders the mark from the single

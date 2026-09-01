@@ -1,0 +1,71 @@
+#!/bin/bash
+# OneOS - run the real Windows build of VLC, to prove the Windows layer works.
+#
+# WHY A DEMO AT ALL
+# "Runs Windows software" is a claim. Until a user watches an actual Windows
+# .exe open on their machine, it is only a claim. This makes the proof one
+# click, using a program everybody recognises.
+#
+# WHY VLC
+# It is GPL, so there is no licensing tangle; it ships a portable build that
+# needs no installer, which avoids running a Windows installer unattended; and
+# it is heavy enough to be a real test -- video decode, audio out, file dialogs
+# -- rather than a hello-world that proves nothing.
+#
+# WHY IT DOWNLOADS INSTEAD OF SHIPPING IN THE ISO
+# Redistributing VLC's Windows binaries would put OneOS under the GPL's
+# obligation to offer their source. Fetching it on the user's behalf, once,
+# does not. It also keeps ~50 MB out of every ISO for a feature most users
+# will try exactly once.
+
+set -uo pipefail
+
+readonly VER="3.0.21"
+readonly URL="https://get.videolan.org/vlc/${VER}/win64/vlc-${VER}-win64.zip"
+readonly PREFIX="${XDG_DATA_HOME:-$HOME/.local/share}/oneos/prefixes/vlc-windows"
+readonly APPDIR="${PREFIX}/drive_c/vlc"
+
+dlg() { kdialog --title "VLC for Windows" "$@" 2>/dev/null; }
+
+command -v wine >/dev/null 2>&1 || {
+	dlg --error "Windows program support is not installed."; exit 1; }
+
+# Already unpacked -- just run it.
+if [ -x "${APPDIR}/vlc.exe" ]; then
+	exec oneos-wine-run "$PREFIX" wine "${APPDIR}/vlc.exe" "$@"
+fi
+
+dlg --yesno "This downloads the real Windows build of VLC (about 50 MB) and runs it on OneOS.
+
+It is the same .exe that runs on Windows — nothing is emulated or faked.
+
+Download it now?" || exit 0
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# --progress-bar output is not useful in a dialog, so show an indeterminate one
+# and let curl work in the background.
+( curl -fsSL --retry 3 -o "$tmp/vlc.zip" "$URL" ) &
+dl=$!
+ref=$(kdialog --title "VLC for Windows" --progressbar "Downloading VLC…" 0 2>/dev/null)
+wait $dl; rc=$?
+[ -n "${ref:-}" ] && qdbus $ref close 2>/dev/null
+
+if [ $rc -ne 0 ]; then
+	dlg --sorry "The download did not finish.
+
+Check that you are online and try again."
+	exit 1
+fi
+
+mkdir -p "$APPDIR"
+# The zip contains a versioned top-level folder; strip it so the path above is
+# stable across VLC releases.
+if ! unzip -q -o "$tmp/vlc.zip" -d "$tmp/x" || ! cp -r "$tmp"/x/vlc-*/. "$APPDIR"/; then
+	dlg --sorry "The download could not be unpacked."
+	exit 1
+fi
+
+notify-send -a "OneOS" "Ready" "VLC for Windows is installed." 2>/dev/null
+exec oneos-wine-run "$PREFIX" wine "${APPDIR}/vlc.exe" "$@"

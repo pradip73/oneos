@@ -1,0 +1,61 @@
+#!/bin/bash
+# OneOS - install F-Droid, to prove the Android layer works.
+#
+# WHY F-DROID AND NOT A SINGLE APP
+# Installing one demo app proves Android runs, then leaves the user with
+# nothing to do next. F-Droid is an app store of free software, so the demo
+# ends with the user able to install anything they like -- which matters
+# especially here, because Google Play does not work and never will. F-Droid is
+# the answer to "so where do I get Android apps then?", and that question
+# arrives about ten seconds after the demo succeeds.
+#
+# It is also open source, freely redistributable, and small.
+
+set -uo pipefail
+
+readonly URL="https://f-droid.org/F-Droid.apk"
+
+dlg() { kdialog --title "Android apps" "$@" 2>/dev/null; }
+
+command -v waydroid >/dev/null 2>&1 || {
+	dlg --error "Android app support is not installed on this system."; exit 1; }
+
+# One-time Android setup, if it has not happened yet.
+if [ ! -f /var/lib/waydroid/waydroid.cfg ]; then
+	dlg --yesno "Android needs a one-time setup of about <b>700 MB</b> before any app can run.
+
+Set it up now?" || exit 0
+	notify-send -a "OneOS" "Setting up Android" "This takes a few minutes." 2>/dev/null
+	pkexec waydroid init || { dlg --sorry "Android setup did not finish."; exit 1; }
+fi
+
+systemctl is-active --quiet waydroid-container.service || \
+	pkexec systemctl start waydroid-container.service || {
+		dlg --sorry "Could not start Android."; exit 1; }
+
+if ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; then
+	waydroid session start >/dev/null 2>&1 &
+	for _ in $(seq 1 30); do
+		waydroid status 2>/dev/null | grep -q "Session:.*RUNNING" && break
+		sleep 1
+	done
+fi
+
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+
+notify-send -a "OneOS" "Downloading F-Droid" "An app store for Android software." 2>/dev/null
+curl -fsSL --retry 3 -o "$tmp/fdroid.apk" "$URL" || {
+	dlg --sorry "The download did not finish. Check that you are online."; exit 1; }
+
+if out=$(waydroid app install "$tmp/fdroid.apk" 2>&1); then
+	dlg --msgbox "<b>F-Droid is installed.</b>
+
+It is in your launcher, and it is where Android apps come from on OneOS — the Google Play Store does not work here.
+
+Anything you install from it appears on the desktop like any other program."
+else
+	dlg --sorry "F-Droid could not be installed.
+
+$(printf '%s' "$out" | tail -n 3)"
+	exit 1
+fi

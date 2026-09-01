@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Get Android apps
+GenericName=F-Droid
+Comment=Install F-Droid, the app store for Android software on OneOS
+Exec=oneos-demo-android
+Icon=phone
+Terminal=false
+Categories=System;
