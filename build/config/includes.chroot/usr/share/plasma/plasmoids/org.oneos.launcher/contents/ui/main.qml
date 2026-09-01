@@ -60,7 +60,7 @@ PlasmoidItem {
         { name: "Windows apps",   icon: "wine",                     exec: "oneos-windows-settings" },
         { name: "Android apps",   icon: "phone",                    exec: "oneos-android-settings" },
         { name: "Control Panel",  icon: "preferences-system",       exec: "plasmawindowed org.oneos.controlpanel" },
-        { name: "This computer",  icon: "computer",                 exec: "oneos-about" },
+        { name: "System info",    icon: "computer",                 exec: "oneos-about" },
         { name: "Software",       icon: "plasmadiscover",           exec: "plasma-discover" }
     ]
 

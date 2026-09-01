@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=System information
+GenericName=About this computer
+Comment=Processor, memory, drives, and what this machine can run
+Exec=oneos-about
+Icon=computer
+Terminal=false
+Categories=System;

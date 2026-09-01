@@ -2,8 +2,11 @@
 Type=Application
 Name=This computer
 GenericName=System information
-Comment=What is inside this machine, and what it can run
-Exec=oneos-about
+Comment=Your drives and devices
+# Opens the drives, as double-clicking This PC does on Windows. The facts about
+# the machine live in "System information", reachable from the Control Panel
+# and from inside this window.
+Exec=xdg-open computer:///
 Icon=computer
 Terminal=false
 Categories=System;

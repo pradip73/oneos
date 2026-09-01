@@ -62,7 +62,7 @@ PlasmoidItem {
         { name: "Accessibility", hint: "Text size and reader",   icon: "preferences-desktop-accessibility", cmd: "systemsettings kcm_access" },
         { name: "Date and time", hint: "Clock and time zone",    icon: "clock",                      cmd: "systemsettings kcm_clock" },
         { name: "Updates",       hint: "Keep OneOS current",     icon: "system-software-update",     cmd: "plasma-discover --mode update" },
-        { name: "This computer", hint: "What is inside it",      icon: "computer",                   cmd: "oneos-about" }
+        { name: "System info",   hint: "What is inside it",      icon: "computer",                   cmd: "oneos-about" }
     ]
 
     property string filter: ""

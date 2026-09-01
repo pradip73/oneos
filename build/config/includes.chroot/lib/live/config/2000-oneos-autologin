@@ -34,6 +34,27 @@ Relogin=false
 SDDMEOF
 
 	chmod 0644 /etc/sddm.conf.d/zz-oneos-live.conf
+
+	# The live session is a trap without this. Locking the screen asks for a
+	# password nobody was ever told, and there is no way back in -- the only
+	# route out is a hard reset, which on a machine mid-installation is a real
+	# way to lose someone's work. Removing the lock action from the live
+	# session is the honest fix: there is nothing to protect on a live USB
+	# anyway, since anyone holding it can read the disk regardless.
+	mkdir -p /etc/xdg
+	cat > /etc/xdg/kscreenlockerrc <<'LOCKEOF'
+[Daemon]
+Autolock=false
+LockOnResume=false
+LockGrace=0
+LOCKEOF
+
+	# And say the password out loud where someone will actually see it, for
+	# the case where something locks the session anyway.
+	cat > /etc/issue.oneos <<'ISSUEEOF'
+This is a OneOS live session.
+Username: oneos      Password: live
+ISSUEEOF
 }
 
 Autologin

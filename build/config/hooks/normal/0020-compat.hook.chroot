@@ -44,10 +44,19 @@ fi
 echo "I: [oneos] installing Waydroid from its upstream repository"
 if curl -fsSL --retry 3 https://repo.waydro.id/waydroid.gpg \
 		-o /usr/share/keyrings/waydroid.gpg; then
-	# The project builds for Debian's stable suites; bookworm packages work on
-	# trixie because Waydroid is mostly Python plus a systemd unit.
-	echo "deb [signed-by=/usr/share/keyrings/waydroid.gpg] https://repo.waydro.id/ bookworm main" \
+	# arch=all is not optional, and leaving it out is exactly what broke the
+	# first attempt. The repository's Release file advertises
+	#     Architectures: i386 amd64 arm64 armhf all
+	# but only ever publishes main/binary-all/Packages -- main/binary-amd64 is
+	# a 404. apt then fails the entire update, which took the install down with
+	# it and left only "Unable to locate package waydroid" with no hint why.
+	#
+	# Restricting the entry to arch=all makes apt fetch the one index that
+	# exists. Nothing is lost: waydroid is Architecture: all, being Python plus
+	# a systemd unit.
+	echo "deb [arch=all signed-by=/usr/share/keyrings/waydroid.gpg] https://repo.waydro.id/ trixie main" \
 		> /etc/apt/sources.list.d/waydroid.list
+
 	if apt-get update -qq && apt-get install -y --no-install-recommends waydroid; then
 		# Leave the container DISABLED. It costs 1-1.5 GB of RAM the moment it
 		# starts, which the 4 GB target cannot spend before the user has asked
