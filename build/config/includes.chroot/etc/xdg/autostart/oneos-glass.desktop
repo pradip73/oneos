@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=OneOS graphics tuning
+Exec=/etc/xdg/oneos-glass.sh
+Terminal=false
+NoDisplay=true
+X-KDE-autostart-phase=0

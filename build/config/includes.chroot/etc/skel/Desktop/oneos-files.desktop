@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Your documents, downloads and pictures
+Exec=dolphin
+Icon=system-file-manager
+Terminal=false

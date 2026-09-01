@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+# "Control Panel", not "System Settings" -- it is the phrase every Windows user
+# already searches for. The window behind it is Plasma's; the name is ours.
+Name=Control Panel
+GenericName=Settings
+Comment=Change how this computer works
+Exec=systemsettings
+Icon=preferences-system
+Terminal=false
+Categories=System;Settings;

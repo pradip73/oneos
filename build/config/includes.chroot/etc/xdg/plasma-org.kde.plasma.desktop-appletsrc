@@ -11,3 +11,21 @@ wallpaperplugin=org.kde.image
 [Containments][1][Wallpaper][org.kde.image][General]
 Image=/usr/share/wallpapers/OneOS/
 SlidePaths=/usr/share/wallpapers/
+
+# Panel: use the task manager that shows window TITLES, not Plasma's default
+# icons-only one. Someone arriving from Windows reads the taskbar to find a
+# window; a row of identical icons makes them hunt.
+#
+# NOTE: this is the most fragile thing in this file. Plasma rewrites the applet
+# layout on first login and may ignore it. If the taskbar comes up icons-only,
+# that is this setting losing, not the image being broken -- it can be changed
+# by right-clicking the taskbar.
+[Containments][2]
+plugin=org.kde.panel
+
+[Containments][2][Applets][3]
+plugin=org.kde.plasma.taskmanager
+
+[Containments][2][Applets][3][Configuration][General]
+showToolTips=true
+groupingStrategy=0

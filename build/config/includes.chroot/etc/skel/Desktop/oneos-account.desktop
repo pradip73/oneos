@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Your account
+Comment=Your name, picture and password
+Exec=systemsettings kcm_users
+Icon=user-identity
+Terminal=false
+Categories=System;Settings;

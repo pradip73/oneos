@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Link
+# "Recycle Bin" rather than "Trash". Familiarity in the furniture is what buys
+# permission to be unfamiliar elsewhere.
+Name=Recycle Bin
+Comment=Deleted files
+URL=trash:/
+Icon=user-trash

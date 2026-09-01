@@ -1,0 +1,83 @@
+#!/bin/bash
+# OneOS - "About this computer".
+#
+# The real version of the Properties sheet from the design. Windows users go
+# looking for this constantly and on Linux it is scattered across half a dozen
+# tools, so it is one window reachable from the desktop and the right-click
+# menu.
+#
+# Deliberately reports the two things nobody else shows: whether Windows and
+# Android support are actually working on THIS machine. Those are the reasons
+# someone installed OneOS, and "supported" on the website is worth nothing if
+# the layer failed to install here.
+
+set -uo pipefail
+
+# --- Gather ------------------------------------------------------------------
+host=$(hostname)
+
+cpu=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1)
+[ -n "$cpu" ] || cpu="Unknown processor"
+# Trim the marketing noise vendors put in the model string.
+cpu=$(printf '%s' "$cpu" | sed -e 's/([A-Za-z]*)//g' -e 's/ CPU @.*//' -e 's/  */ /g')
+cores=$(nproc 2>/dev/null || echo "?")
+
+mem_kb=$(sed -n 's/^MemTotal:[[:space:]]*\([0-9]*\).*/\1/p' /proc/meminfo)
+mem_gb=$(( (mem_kb + 524288) / 1048576 ))
+
+gpu=$(lspci 2>/dev/null | sed -n 's/.*VGA compatible controller: //p' | head -n1)
+[ -n "$gpu" ] || gpu="Unknown graphics"
+gpu=$(printf '%s' "$gpu" | sed -e 's/([^)]*)//g' -e 's/  */ /g')
+
+root_free=$(df -h --output=avail / 2>/dev/null | tail -n1 | tr -d ' ')
+root_size=$(df -h --output=size / 2>/dev/null | tail -n1 | tr -d ' ')
+
+. /etc/os-release 2>/dev/null || true
+version="${VERSION:-unknown}"
+
+arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
+case "$arch" in amd64|x86_64) bits="64-bit" ;; *) bits="$arch" ;; esac
+
+# --- The two answers that matter ---------------------------------------------
+if command -v wine >/dev/null 2>&1; then
+	if command -v bwrap >/dev/null 2>&1; then
+		win="Working, in a sandbox"
+	else
+		# Worth saying out loud rather than reporting a bare "Working".
+		win="Working, but NOT sandboxed"
+	fi
+else
+	win="Not installed"
+fi
+
+if ! command -v waydroid >/dev/null 2>&1; then
+	android="Not installed"
+elif [ -f /var/lib/waydroid/waydroid.cfg ]; then
+	android="Ready"
+else
+	android="Needs one-time setup"
+fi
+
+# --- Show --------------------------------------------------------------------
+read -r -d '' body <<HTML || true
+<h3>${host}</h3>
+<p><b>${PRETTY_NAME:-OneOS}</b></p>
+<table>
+<tr><td>Processor&nbsp;&nbsp;</td><td><b>${cpu} · ${cores} cores</b></td></tr>
+<tr><td>Memory</td><td><b>${mem_gb} GB</b></td></tr>
+<tr><td>Graphics</td><td><b>${gpu}</b></td></tr>
+<tr><td>Main drive</td><td><b>${root_size} · ${root_free} free</b></td></tr>
+<tr><td>System type</td><td><b>${bits}</b></td></tr>
+<tr><td>Version</td><td><b>${version}</b></td></tr>
+<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td>Windows programs&nbsp;&nbsp;</td><td><b>${win}</b></td></tr>
+<tr><td>Android apps</td><td><b>${android}</b></td></tr>
+</table>
+HTML
+
+if command -v kdialog >/dev/null 2>&1; then
+	kdialog --title "About this computer" --msgbox "$body" --geometry 460x420 2>/dev/null
+else
+	# Terminal fallback, so this still answers the question over SSH.
+	printf '%s\n' "$body" | sed -e 's/<[^>]*>//g' -e '/^$/d'
+fi

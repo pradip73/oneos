@@ -113,6 +113,13 @@ bubblewrap
 # xdg-open, used by the welcome screen.
 xdg-utils
 
+# oneos-about reads the graphics card from lspci and, in oneos-glass.sh, asks
+# glxinfo whether rendering is happening on the CPU. Without these the About
+# window says "Unknown graphics" and the glass never turns itself off on the
+# machines that most need it to.
+pciutils
+mesa-utils
+
 # --- Boot splash and installer -----------------------------------------------
 # plymouth draws the boot splash; librsvg2-bin renders the mark from the single
 # SVG in the repository at build time, so the artwork has one source of truth

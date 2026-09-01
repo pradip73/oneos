@@ -1,0 +1,23 @@
+# OneOS window manager defaults.
+
+[Plugins]
+# The glass. blur frosts what is behind a translucent surface;
+# contrast keeps text on it readable instead of muddy.
+blurEnabled=true
+contrastEnabled=true
+
+[Effect-blur]
+BlurStrength=12
+NoiseStrength=4
+
+[Compositing]
+# OpenGL 3.1 where it exists. If the driver cannot manage it, KWin falls back
+# on its own rather than refusing to start -- which matters because this image
+# is expected to run on integrated graphics and inside virtual machines.
+OpenGLIsUnsafe=false
+WindowsBlockCompositing=true
+
+[Windows]
+# Windows-like: dragging to the top maximises, to a side tiles half.
+ElectricBorderMaximize=true
+ElectricBorderTiling=true
