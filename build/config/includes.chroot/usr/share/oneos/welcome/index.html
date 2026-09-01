@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Welcome to OneOS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--g:#F2F5F3;--s:#fff;--l:#D2DCD7;--ink:#0F1E1B;--ink2:#3D4E49;--ink3:#6B7C77;--a:#0B6E5F;--aw:#DCEBE7;--w:#9A5B10;--ww:#F6E9D6}
+@media(prefers-color-scheme:dark){:root{--g:#0C1513;--s:#141F1C;--l:#2A3A36;--ink:#E8EFEC;--ink2:#AFC0BB;--ink3:#7E918C;--a:#4FC7AE;--aw:#16302B;--w:#E0A458;--ww:#2E2517}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--g);color:var(--ink);font-family:system-ui,sans-serif;line-height:1.6;padding:48px 24px}
+.w{max-width:760px;margin:0 auto}
+h1{font-size:2.2rem;margin:0 0 8px;letter-spacing:-.02em}
+h1 span{color:var(--a)}
+.lede{color:var(--ink2);font-size:1.08rem;margin:0 0 32px}
+h2{font-size:1.15rem;margin:32px 0 12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.c{background:var(--s);border:1px solid var(--l);border-radius:10px;padding:16px 18px}
+.c h3{margin:0 0 6px;font-size:1rem}
+.c p{margin:0;font-size:.92rem;color:var(--ink2)}
+.c .ic{font-size:1.5rem;display:block;margin-bottom:6px}
+.warn{border-left:3px solid var(--w);background:var(--ww);padding:16px 20px;border-radius:0 10px 10px 0;margin-top:28px}
+.warn h3{margin:0 0 6px;font-size:1rem;color:var(--w)}
+.warn p{margin:0 0 8px;font-size:.93rem;color:var(--ink2)}
+.warn p:last-child{margin:0}
+code{background:var(--aw);color:var(--a);padding:2px 6px;border-radius:4px;font-size:.88em}
+footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--l);color:var(--ink3);font-size:.87rem}
+</style></head><body><div class="w">
+
+<h1>Welcome to <span>One</span>OS</h1>
+<p class="lede">One computer that runs Linux, Windows and Android software. Here is what works,
+and — just as important — what does not.</p>
+
+<h2>Installing programs</h2>
+<div class="cards">
+  <div class="c"><span class="ic">🐧</span><h3>Linux</h3><p>Open <b>Programs</b> in the Control Panel, or double-click a <code>.deb</code> file.</p></div>
+  <div class="c"><span class="ic">🪟</span><h3>Windows</h3><p>Double-click any <code>.exe</code>. Each program gets its own sealed workspace.</p></div>
+  <div class="c"><span class="ic">🤖</span><h3>Android</h3><p>Double-click an <code>.apk</code>. The first one sets Android up — about 700 MB, once.</p></div>
+</div>
+<p style="margin-top:14px;color:var(--ink3);font-size:.92rem">Anything you install appears on the desktop and in the menu by itself.</p>
+
+<h2>What will not work</h2>
+<div class="warn">
+  <h3>Please read this before you rely on OneOS</h3>
+  <p><b>Android apps that check for Google Play</b> — banking apps, Netflix and most paid
+  streaming — will refuse to run. This is not a bug and it cannot be fixed here.</p>
+  <p><b>Windows software needing anti-cheat or hardware drivers</b> — competitive online games,
+  antivirus, VPN clients with kernel drivers — will not run either.</p>
+  <p><b>Windows programs can still misbehave.</b> They are sealed off from your files, but a
+  program you did not trust is still a program you should not run.</p>
+</div>
+
+<h2>Two things worth knowing</h2>
+<div class="cards">
+  <div class="c"><h3>This desktop is temporary</h3><p>OneOS currently borrows the KDE Plasma desktop while its own is built. Everything you learn here still applies.</p></div>
+  <div class="c"><h3>It is early</h3><p>Version 0.2. Things will break. Keep a backup of anything you cannot lose.</p></div>
+</div>
+
+<footer>OneOS 0.2 · <a href="https://github.com/pradip73/oneos" style="color:var(--a)">github.com/pradip73/oneos</a> · This window will not open again.</footer>
+</div></body></html>

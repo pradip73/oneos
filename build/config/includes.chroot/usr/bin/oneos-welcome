@@ -1,0 +1,21 @@
+#!/bin/sh
+# Shows the welcome page once per user, on first login.
+#
+# A first-run screen is where expectations get set, and this project has more to
+# be honest about than most: Google Play does not work, anti-cheat games do not
+# run, the desktop is borrowed. Saying that here costs one screen. Letting a
+# user discover it when their banking app refuses to open costs their trust.
+#
+# HTML in the browser rather than a native app: the content is what matters,
+# and this needs no toolkit, no packaging, and no maintenance.
+
+set -e
+STAMP="${XDG_STATE_HOME:-$HOME/.local/state}/oneos/welcome-shown"
+
+[ -f "$STAMP" ] && exit 0
+mkdir -p "$(dirname "$STAMP")"
+touch "$STAMP"
+
+# Let the desktop settle before stealing focus.
+sleep 4
+xdg-open /usr/share/oneos/welcome/index.html >/dev/null 2>&1 || true

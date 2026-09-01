@@ -45,7 +45,9 @@ prefix="${PREFIX_ROOT}/${slug}"
 if ! kdialog --title "Run a Windows program?" \
 	--warningyesno "<b>${name}</b>
 
-This is a Windows program. OneOS can run it, but it will have access to your files, just as it would on Windows.
+This is a Windows program.
+
+OneOS runs it in a sealed workspace. It can only see its own files and the folder <b>Documents / Windows files</b> — not the rest of your computer.
 
 Only continue if you trust where this file came from." 2>/dev/null
 then
@@ -58,7 +60,7 @@ export WINEPREFIX="$prefix"
 export WINEDLLOVERRIDES="mscoree=d"   # skip the .NET installer nag on first run
 
 if [ ! -d "$prefix/drive_c" ]; then
-	( wineboot --init >/dev/null 2>&1 ) &
+	( oneos-wine-run "$prefix" wineboot --init >/dev/null 2>&1 ) &
 	boot_pid=$!
 	kdialog --title "OneOS" --progressbar "Getting ready to run ${name}…" 0 >/tmp/oneos-dlg.$$ 2>/dev/null
 	dbusref=$(cat /tmp/oneos-dlg.$$ 2>/dev/null); rm -f /tmp/oneos-dlg.$$
@@ -77,8 +79,8 @@ cd "$(dirname "$APP")" || exit 1
 snap=$(mktemp); oneos-shortcuts scan > "$snap"
 
 case "${name,,}" in
-	*.msi) wine msiexec /i "$APP" ;;
-	*)     wine "$APP" ;;
+	*.msi) oneos-wine-run "$prefix" wine msiexec /i "$APP" ;;
+	*)     oneos-wine-run "$prefix" wine "$APP" ;;
 esac
 status=$?
 

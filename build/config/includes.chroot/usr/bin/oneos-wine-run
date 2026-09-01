@@ -1,0 +1,77 @@
+#!/bin/bash
+# OneOS - run a Windows program inside a sandbox.
+#
+#   oneos-wine-run <WINEPREFIX> <command> [args...]
+#
+# WHY THIS EXISTS
+# The Wine project states plainly that Wine is not a security boundary. A
+# Windows program running under plain Wine has every permission the user has:
+# it can read the whole home directory, the browser profile, saved passwords,
+# SSH keys, and anything on a mounted drive. Shipping .exe support without
+# confinement means shipping the Windows malware ecosystem to people who were
+# told this OS was safer.
+#
+# bubblewrap gives the program a filesystem that contains only what it needs:
+#
+#   /usr, /etc, /lib     read-only, so it can run but cannot modify the system
+#   its own WINEPREFIX   read-write -- its C: drive
+#   ~/Windows files      read-write -- the ONE shared folder, so saving works
+#   the installer file   read-only
+#   everything else      absent, including the rest of the home directory
+#
+# This is a real boundary, not a warning label. It is not perfect -- the program
+# still has the network and the GPU, and a kernel exploit escapes any sandbox --
+# but it turns "reads all your files" into "reads the folder you gave it".
+
+set -uo pipefail
+
+readonly PREFIX="$1"; shift
+
+[ -n "${PREFIX}" ] || { echo "oneos-wine-run: no prefix given" >&2; exit 2; }
+
+# The one folder Windows programs and the user share. Without somewhere writable
+# that the user can also reach, "save as" leads nowhere they can find.
+SHARED="$(xdg-user-dir DOCUMENTS 2>/dev/null || echo "${HOME}/Documents")/Windows files"
+mkdir -p "$SHARED" "$PREFIX"
+
+if ! command -v bwrap >/dev/null 2>&1; then
+	# Refusing outright would be worse: the program simply would not run, with
+	# no explanation, and the user would conclude OneOS is broken. Run it, but
+	# make sure the risk was stated rather than hidden.
+	echo "oneos-wine-run: bubblewrap missing -- running WITHOUT a sandbox" >&2
+	notify-send -u critical -a "OneOS" "Running without protection" \
+		"This Windows program can read your files. The sandbox is unavailable." 2>/dev/null
+	WINEPREFIX="$PREFIX" exec "$@"
+fi
+
+# --unshare-all then --share-net: no shared process table, IPC, or user
+# namespace, but the network stays -- installers download, and apps expect it.
+#
+# /dev is bound rather than filtered because Wine needs the GPU node for
+# rendering and the sound devices for audio, and enumerating them individually
+# breaks on machines with different hardware.
+exec bwrap \
+	--ro-bind /usr /usr \
+	--ro-bind /etc /etc \
+	--ro-bind-try /opt /opt \
+	--symlink usr/lib  /lib \
+	--symlink usr/lib32 /lib32 \
+	--symlink usr/lib64 /lib64 \
+	--symlink usr/bin  /bin \
+	--symlink usr/sbin /sbin \
+	--proc /proc \
+	--dev-bind /dev /dev \
+	--tmpfs /tmp \
+	--tmpfs /run \
+	--ro-bind-try /run/user/"$(id -u)" /run/user/"$(id -u)" \
+	--bind "$PREFIX" "$PREFIX" \
+	--bind "$SHARED" "$SHARED" \
+	--ro-bind-try "$(dirname "${2:-/nonexistent}")" "$(dirname "${2:-/nonexistent}")" \
+	--setenv WINEPREFIX "$PREFIX" \
+	--setenv HOME "$PREFIX" \
+	--setenv XDG_RUNTIME_DIR "/run/user/$(id -u)" \
+	--unshare-all \
+	--share-net \
+	--die-with-parent \
+	--new-session \
+	"$@"

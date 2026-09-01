@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=OneOS Welcome
+Exec=oneos-welcome
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
