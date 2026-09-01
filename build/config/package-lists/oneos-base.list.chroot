@@ -50,7 +50,20 @@ firmware-linux-free
 firmware-iwlwifi
 firmware-realtek
 firmware-atheros
+# Broadcom. Missing this is the single most common reason a Debian install has
+# no Wi-Fi at all -- it covers a large share of Dell, HP and Lenovo laptops,
+# and every Mac. Its absence was a real gap in this image.
+firmware-brcm80211
+# MediaTek, which is what most recent budget laptops ship.
+firmware-mediatek
+# Marvell, for older machines.
+firmware-libertas
 firmware-amd-graphics
+firmware-intel-graphics
+# Intel's SOF audio firmware. Without it there is simply NO SOUND on most
+# Intel laptops built since about 2019 -- the hardware is detected and plays
+# nothing, which is a maddening fault to diagnose.
+firmware-sof-signed
 firmware-misc-nonfree
 intel-microcode
 amd64-microcode
