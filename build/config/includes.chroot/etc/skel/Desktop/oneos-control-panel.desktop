@@ -1,11 +1,14 @@
 [Desktop Entry]
 Type=Application
 # "Control Panel", not "System Settings" -- it is the phrase every Windows user
-# already searches for. The window behind it is Plasma's; the name is ours.
+# already searches for. The grid behind it is ours; the individual settings
+# pages it opens are KDE's, because those work.
 Name=Control Panel
 GenericName=Settings
 Comment=Change how this computer works
-Exec=systemsettings
+# plasmawindowed runs a plasmoid as an ordinary window, so the Control Panel
+# needs no QML runtime beyond the one Plasma already ships.
+Exec=plasmawindowed org.oneos.controlpanel
 Icon=preferences-system
 Terminal=false
 Categories=System;Settings;

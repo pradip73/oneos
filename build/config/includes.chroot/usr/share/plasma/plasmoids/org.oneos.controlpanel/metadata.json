@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Id": "org.oneos.controlpanel",
+        "Name": "Control Panel",
+        "Description": "Every setting, on one page",
+        "Icon": "preferences-system",
+        "Category": "System Information",
+        "License": "GPL-3.0-or-later",
+        "Authors": [ { "Name": "OneOS Project" } ],
+        "ServiceTypes": [ "Plasma/Applet" ]
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

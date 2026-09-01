@@ -41,3 +41,10 @@ plugin=org.oneos.launcher
 [Containments][2][Applets][4][Configuration][General]
 favorites=firefox-esr.desktop,org.kde.dolphin.desktop,oneos-windows-settings.desktop,oneos-android-settings.desktop,org.kde.konsole.desktop,oneos-control-panel.desktop,oneos-about.desktop
 showAppsByName=true
+
+# Applet 5 is the clock and quick settings. Plasma's notification applet stays
+# in the tray beside it -- see the note at the top of the applet's main.qml for
+# why reimplementing notifications would be a month spent to match what already
+# works.
+[Containments][2][Applets][5]
+plugin=org.oneos.quicksettings
