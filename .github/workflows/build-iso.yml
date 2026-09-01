@@ -51,6 +51,23 @@ jobs:
         id: ver
         run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
 
+      - name: Check the package lists
+        # A build once failed with "Unable to locate package the" because an
+        # edit broke a comment mid-sentence and its words became package names.
+        # apt only complains 25 minutes in, so check the shape here: every line
+        # that is not blank and not a comment must look like a package name.
+        run: |
+          bad=0
+          for f in build/config/package-lists/*.list.chroot; do
+            if offenders=$(grep -nvE '^\s*(#|$)' "$f" | grep -vE ':[a-z0-9][a-z0-9.+-]*$'); then
+              echo "::error file=$f::not package names:"
+              echo "$offenders" | while IFS= read -r l; do echo "::error::$f $l"; done
+              bad=1
+            fi
+          done
+          [ $bad -eq 0 ] && echo "package lists OK"
+          exit $bad
+
       - name: Build ISO
         run: |
           chmod +x build.sh build/auto/config

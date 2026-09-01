@@ -98,24 +98,18 @@ libnotify-bin
 pkexec
 desktop-file-utils
 shared-mime-info
-# xdg-user-dirs
-# bubblewrap confines every Windows program -- see /usr/bin/oneos-wine-run.
-# Without it .exe files run with full access to the user's home directory,
-# which ARCHITECTURE.md 3.4 treats as unshippable. It is listed here rather
-# than installed in a hook so that a missing package fails the build loudly
-# instead of quietly shipping an unprotected image.
-bubblewrap
-# xdg-open, used by the welcome screen.
-xdg-utils provides xdg-user-dir, which oneos-shortcuts uses to find the
-# desktop folder. Its name is localised -- on a Bengali system it is not
+# Provides xdg-user-dir, which oneos-shortcuts uses to locate the desktop
+# folder. That folder's name is localised -- on a Bengali system it is not
 # "Desktop" -- so hardcoding the path would put icons somewhere invisible.
 xdg-user-dirs
+
 # bubblewrap confines every Windows program -- see /usr/bin/oneos-wine-run.
-# Without it .exe files run with full access to the user's home directory,
-# which ARCHITECTURE.md 3.4 treats as unshippable. It is listed here rather
-# than installed in a hook so that a missing package fails the build loudly
-# instead of quietly shipping an unprotected image.
+# Without it, .exe files run with full access to the user's home directory,
+# which ARCHITECTURE.md 3.4 treats as unshippable. Listed here rather than
+# installed from a hook so a missing package fails the build loudly instead
+# of quietly shipping an unprotected image.
 bubblewrap
+
 # xdg-open, used by the welcome screen.
 xdg-utils
 
