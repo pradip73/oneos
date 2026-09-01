@@ -62,9 +62,11 @@ flatpak
 plasma-discover
 plasma-discover-backend-flatpak
 
-# The OneOS launcher applet imports these QML modules. Plasma pulls most of
-# them in already, but a missing one makes the applet vanish silently at
-# runtime rather than fail at build time, so they are named explicitly.
+# The OneOS applets import these QML modules. Plasma pulls most of them in
+# already, but a missing one makes an applet vanish silently at runtime rather
+# than fail at build time, so they are named explicitly. plasma-workspace also
+# provides org.kde.taskmanager, which the taskbar applet reads the window list
+# from.
 qml6-module-org-kde-kirigami
 qml6-module-org-kde-coreaddons
 plasma-workspace

@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Id": "org.oneos.taskbar",
+        "Name": "OneOS Taskbar",
+        "Description": "Open windows, shown by name",
+        "Icon": "preferences-system-windows",
+        "Category": "Windows and Tasks",
+        "License": "GPL-3.0-or-later",
+        "Authors": [ { "Name": "OneOS Project" } ],
+        "ServiceTypes": [ "Plasma/Applet" ]
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

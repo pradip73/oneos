@@ -23,12 +23,11 @@ SlidePaths=/usr/share/wallpapers/
 [Containments][2]
 plugin=org.kde.panel
 
+# Applet 3 is the window list. Ours shows titles and marks the active window
+# with an underline; Plasma's default is icons only. If it fails to load,
+# Plasma substitutes its own, so the panel is never left without a task list.
 [Containments][2][Applets][3]
-plugin=org.kde.plasma.taskmanager
-
-[Containments][2][Applets][3][Configuration][General]
-showToolTips=true
-groupingStrategy=0
+plugin=org.oneos.taskbar
 
 # Start menu favourites -- the "Everyday" row from the launcher design, plus
 # the two tiles that are the point of this OS. Same fragility as the taskbar
