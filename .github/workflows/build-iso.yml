@@ -102,6 +102,21 @@ jobs:
       - name: Show result
         run: ls -lh out/
 
+      - name: Surface the build's own warnings
+        # The hooks print "W: [oneos] ..." when something optional could not be
+        # done -- Waydroid missing, artwork not rendered. On a successful build
+        # nothing uploads the log, and job logs need repository admin rights to
+        # read, so those warnings were invisible and a missing feature looked
+        # like a mystery. Annotations are public API, so they are readable.
+        if: always()
+        run: |
+          if [ -f build/build.log ]; then
+            grep -E '^W: \[oneos\]' build/build.log | sort -u | while IFS= read -r l; do
+              echo "::warning::$l"
+            done
+            grep -cE '^W: \[oneos\]' build/build.log || echo "no OneOS warnings"
+          fi
+
       - name: Upload ISO
         uses: actions/upload-artifact@v4
         with:

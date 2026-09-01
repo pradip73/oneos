@@ -30,7 +30,8 @@ passwd
 systemd
 systemd-sysv
 systemd-timesyncd
-systemd-resolved
+# NOT systemd-resolved: NetworkManager manages /etc/resolv.conf, and having
+# both fight over it broke DNS entirely. See 0010-services.hook.chroot.
 # NOTE: dracut must NOT be listed here, even though docs/ARCHITECTURE.md
 # prefers it. A live ISO boots via live-boot-initramfs-tools, which depends on
 # initramfs-tools, and dracut Provides/Conflicts linux-initramfs-tool. Listing

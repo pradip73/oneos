@@ -21,6 +21,8 @@ cpu=$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -n1)
 # Trim the marketing noise vendors put in the model string.
 cpu=$(printf '%s' "$cpu" | sed -e 's/([A-Za-z]*)//g' -e 's/ CPU @.*//' -e 's/  */ /g')
 cores=$(nproc 2>/dev/null || echo "?")
+# "1 cores" reads like a bug even when the number is right.
+if [ "$cores" = "1" ]; then core_word="core"; else core_word="cores"; fi
 
 mem_kb=$(sed -n 's/^MemTotal:[[:space:]]*\([0-9]*\).*/\1/p' /proc/meminfo)
 mem_gb=$(( (mem_kb + 524288) / 1048576 ))
@@ -63,7 +65,7 @@ read -r -d '' body <<HTML || true
 <h3>${host}</h3>
 <p><b>${PRETTY_NAME:-OneOS}</b></p>
 <table>
-<tr><td>Processor&nbsp;&nbsp;</td><td><b>${cpu} · ${cores} cores</b></td></tr>
+<tr><td>Processor&nbsp;&nbsp;</td><td><b>${cpu} · ${cores} ${core_word}</b></td></tr>
 <tr><td>Memory</td><td><b>${mem_gb} GB</b></td></tr>
 <tr><td>Graphics</td><td><b>${gpu}</b></td></tr>
 <tr><td>Main drive</td><td><b>${root_size} · ${root_free} free</b></td></tr>
@@ -76,7 +78,14 @@ read -r -d '' body <<HTML || true
 HTML
 
 if command -v kdialog >/dev/null 2>&1; then
-	kdialog --title "About this computer" --msgbox "$body" --geometry 460x420 2>/dev/null
+	# Windows opens a window of drives when you click This PC. Showing only a
+	# panel of facts is a dead end -- there is nowhere to go from it. So the
+	# dialog offers the drives as well, and the facts stay one place.
+	if kdialog --title "About this computer" \
+	           --yes-label "Open drives" --no-label "Close" \
+	           --yesno "$body" --geometry 470x440 2>/dev/null; then
+		xdg-open "computer:///" >/dev/null 2>&1 &
+	fi
 else
 	# Terminal fallback, so this still answers the question over SSH.
 	printf '%s\n' "$body" | sed -e 's/<[^>]*>//g' -e '/^$/d'

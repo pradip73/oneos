@@ -12,13 +12,17 @@ echo "I: [oneos] registering file handlers"
 # 1. Execute permission. Git tracks the mode, but it does not survive every
 #    path a file can take into an image, and a handler that is not executable
 #    fails silently with "could not launch".
-for helper in oneos-install-exe oneos-install-apk oneos-install-deb \
-              oneos-shortcuts oneos-wine-run oneos-welcome oneos-about \
-              oneos-windows-settings oneos-android-settings \
-              oneos-demo-windows oneos-demo-android; do
-	chmod 0755 "/usr/bin/${helper}" 2>/dev/null || \
-		echo "W: [oneos] /usr/bin/${helper} missing" >&2
+# Maintaining this list by hand already cost one bug: oneos-run-bundled was
+# added and not listed, so VLC failed at the click with "missing executable
+# permissions". Glob instead, so a new helper cannot be forgotten.
+found=0
+for helper in /usr/bin/oneos-*; do
+	[ -f "$helper" ] || continue
+	chmod 0755 "$helper"
+	found=$((found + 1))
 done
+echo "I: [oneos] made ${found} helper(s) executable"
+[ "$found" -gt 0 ] || echo "W: [oneos] no /usr/bin/oneos-* helpers found at all" >&2
 
 # 2. The desktop database. Until it is rebuilt, the MimeType= lines in our
 #    .desktop files are invisible to the file manager.
