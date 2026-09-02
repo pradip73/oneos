@@ -13,6 +13,16 @@ set -e
 
 echo "I: [oneos] configuring compatibility layers"
 
+# Everything below this line downloads something. When DNS is broken inside the
+# chroot each step fails separately and reports its own symptom -- "no Waydroid
+# key", "could not fetch VLC" -- and the shared cause is invisible. Say it once,
+# up front, so the next person reads one line instead of five.
+if ! curl -fsS --max-time 20 -o /dev/null https://deb.debian.org/ 2>/dev/null; then
+	echo "W: [oneos] NO NETWORK IN THE BUILD CHROOT -- every download below will" >&2
+	echo "W: [oneos] fail. Windows apps, Android support and the staged APKs will" >&2
+	echo "W: [oneos] all be missing from this image for this one reason." >&2
+fi
+
 # --- 32-bit Windows applications ---------------------------------------------
 # A very large share of Windows software is still 32-bit -- older installers,
 # line-of-business apps, and most games from before roughly 2015. 64-bit Wine

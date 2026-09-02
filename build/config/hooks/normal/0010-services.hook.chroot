@@ -19,8 +19,18 @@ systemctl enable systemd-timesyncd.service
 # Two components both trying to own one file is the bug. One owner, fewer ways
 # to fail.
 systemctl disable systemd-resolved.service 2>/dev/null || true
-rm -f /etc/resolv.conf
 systemctl enable NetworkManager.service
+
+# DO NOT delete /etc/resolv.conf here. An earlier version did, and it was the
+# single most damaging line in this repository: live-build puts a working
+# resolv.conf in the chroot for the duration of the build and removes it
+# afterwards, so deleting it in this hook -- the first one to run -- left every
+# later hook without DNS. Waydroid, VLC, Notepad++, F-Droid and 32-bit Wine all
+# failed to download, and each reported its own unrelated-looking warning, so
+# the image shipped missing five features for one reason.
+#
+# Nothing needs to be done about resolv.conf at all: live-build cleans up its
+# build-time copy, and NetworkManager writes the real one at boot.
 systemctl enable bluetooth.service
 
 # fwupd.service is D-Bus activated and has no [Install] section, so enabling it
