@@ -38,7 +38,7 @@ echo "I: [oneos] file handlers registered"
 # --- OneOS Plasma applets ----------------------------------------------------
 # A plasmoid that fails to parse simply does not appear, with the reason only
 # in the session log -- so check it here, where the build output is read.
-for applet in launcher taskbar quicksettings controlpanel; do
+for applet in launcher taskbar quicksettings controlpanel thiscomputer; do
 	dir="/usr/share/plasma/plasmoids/org.oneos.${applet}"
 	if [ -d "$dir" ]; then
 		if command -v qmllint6 >/dev/null 2>&1; then

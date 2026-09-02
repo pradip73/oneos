@@ -1,0 +1,14 @@
+{
+    "KPlugin": {
+        "Id": "org.oneos.thiscomputer",
+        "Name": "This computer",
+        "Description": "Drives, memory and what this machine can run",
+        "Icon": "computer",
+        "Category": "System Information",
+        "License": "GPL-3.0-or-later",
+        "Authors": [ { "Name": "OneOS Project" } ],
+        "ServiceTypes": [ "Plasma/Applet" ]
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

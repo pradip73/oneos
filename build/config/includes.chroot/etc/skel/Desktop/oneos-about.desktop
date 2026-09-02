@@ -2,11 +2,12 @@
 Type=Application
 Name=This computer
 GenericName=System information
-Comment=Your drives and devices
-# Opens the drives, as double-clicking This PC does on Windows. The facts about
-# the machine live in "System information", reachable from the Control Panel
-# and from inside this window.
-Exec=xdg-open computer:///
+Comment=Drives, memory, and what this machine can run
+# The full page: drives on the left, the machine on the right, with an
+# "Open drives" button for the file-manager view. Windows opens a plain folder
+# here; this answers the second question people actually came with -- what is
+# in this thing -- without a second trip.
+Exec=plasmawindowed org.oneos.thiscomputer
 Icon=computer
 Terminal=false
 Categories=System;
