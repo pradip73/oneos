@@ -87,15 +87,14 @@ fi
 # nearly double the ISO, and it is redistributed by the Waydroid project
 # rather than by us.
 
-# --- Wine sandbox groundwork -------------------------------------------------
-# ARCHITECTURE.md 3.4 treats sandboxing Wine prefixes as mandatory, not
-# optional: a .exe from the internet otherwise runs with the user's full
-# privileges. bubblewrap is the mechanism; the prefix manager that uses it is
-# Phase 4 work and does not exist yet.
+# --- Wine sandbox ------------------------------------------------------------
+# ARCHITECTURE.md 3.4 treats confining Wine prefixes as mandatory, not optional:
+# a .exe from the internet otherwise runs with the user's full privileges.
 #
-# Installing the tool now does NOT make anything safe. Until the prefix manager
-# ships, Windows applications on OneOS run unsandboxed, and the release notes
-# must say so plainly.
+# bubblewrap is the mechanism and /usr/bin/oneos-wine-run now uses it, so this
+# is no longer groundwork -- it is the boundary itself. Also listed in the
+# desktop package list, where a missing package fails the build loudly; this
+# call is the belt to that braces.
 apt-get install -y --no-install-recommends bubblewrap || \
 	echo "W: [oneos] bubblewrap unavailable" >&2
 
