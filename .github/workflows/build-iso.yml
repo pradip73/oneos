@@ -101,13 +101,14 @@ jobs:
 
       - name: Verify what is inside the image
         # Every bug shipped so far looked identical from here: green build, ISO
-        # produced, something quietly absent from it. This asserts the contents
-        # against the chroot live-build leaves behind, before anyone downloads
-        # 2.6 GB to find out by clicking.
+        # produced, something quietly absent from it. This reads the squashfs
+        # that actually ships -- including permission bits, since the worst of
+        # those bugs was a file present and not executable -- before anyone
+        # downloads 2.6 GB to find out by clicking.
         run: |
           chmod +x build/verify.sh
           set +e
-          build/verify.sh build/chroot | tee /tmp/verify.txt
+          build/verify.sh build | tee /tmp/verify.txt
           rc=${PIPESTATUS[0]}
           set -e
           grep -E '^\s+(FAIL|warn)' /tmp/verify.txt | while IFS= read -r l; do
