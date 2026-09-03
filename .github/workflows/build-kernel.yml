@@ -1,0 +1,80 @@
+name: Build OneOS kernel
+
+# Phase 1b. Manual only -- a kernel build takes over an hour and produces
+# packages the ISO does not use yet, so running it on every push would waste
+# an hour of CI for nothing.
+#
+# The ISO currently ships Debian's kernel. That works, but it means the two
+# kernel features the compatibility layers depend on -- binderfs for Waydroid,
+# ntsync for Wine -- are Debian's decisions rather than ours. Owning the config
+# turns "it happens to work" into "it is guaranteed to".
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Kernel version (must exist on cdn.kernel.org)'
+        required: true
+        default: '6.12.48'
+
+jobs:
+  kernel:
+    runs-on: ubuntu-latest
+    # Well over the 40-90 minutes expected, because a runner that is slower
+    # than usual should not throw away an hour of work at the last minute.
+    timeout-minutes: 300
+
+    container:
+      image: debian:trixie
+
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential fakeroot bc flex bison libssl-dev libelf-dev \
+            rsync dwarves debhelper curl xz-utils kmod cpio git ca-certificates \
+            gnupg patch
+          nproc
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Reclaim disk space
+        # A kernel tree plus its object files needs roughly 35 GB. The hosted
+        # runner ships with several toolchains this build will never use.
+        run: |
+          df -h /
+          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                 /usr/local/share/boost "${AGENT_TOOLSDIRECTORY:-}" || true
+          df -h /
+
+      - name: Build the kernel
+        run: |
+          chmod +x kernel/build-kernel.sh
+          kernel/build-kernel.sh "${{ inputs.version }}" 2>&1 | tee /tmp/kernel.log
+
+      - name: Report which options survived
+        # merge_config warns about symbols a kernel does not have but does not
+        # fail, so a fragment naming an option that no longer exists passes
+        # quietly. These lines are the answer to "did we actually get
+        # binderfs and ntsync", which is the whole reason for building at all.
+        if: always()
+        run: |
+          grep -E '^\s+(on|off) CONFIG_' /tmp/kernel.log | while IFS= read -r l; do
+            case "$l" in
+              *off*) echo "::warning::$(echo "$l" | sed 's/^ *//')" ;;
+              *)     echo "$l" ;;
+            esac
+          done
+          grep -E '^\[!\]' /tmp/kernel.log | sort -u | while IFS= read -r l; do
+            echo "::warning::$l"
+          done || true
+
+      - name: Upload the kernel packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: oneos-kernel-${{ inputs.version }}
+          path: out/kernel/*.deb
+          retention-days: 30
+          if-no-files-found: error
