@@ -53,9 +53,14 @@ ok()   { printf '  \033[32mok\033[0m    %s\n' "$1"; pass=$((pass+1)); }
 bad()  { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; fail=$((fail+1)); }
 soft() { printf '  \033[33mwarn\033[0m  %s\n' "$1"; warn=$((warn+1)); }
 
-# Exact path match on the last field, so /usr/bin/wine does not match
-# /usr/bin/wineserver.
-entry() { awk -v p="$1" '$NF == p {print; exit}' "$MANIFEST"; }
+# Exact path match, so /usr/bin/wine does not match /usr/bin/wineserver.
+#
+# Cannot simply test $NF: unsquashfs renders a symlink as "path -> target", so
+# the last field is the target and every symlinked helper looked missing.
+# Match the field that starts with a slash instead.
+entry() {
+	awk -v p="$1" '{ for (i = 1; i <= NF; i++) if ($i == p) { print; exit } }' "$MANIFEST"
+}
 
 must_exist()  { if [ -n "$(entry "$1")" ]; then ok "$1"; else bad "missing: $1${2:+  ($2)}"; fi; }
 should_exist(){ if [ -n "$(entry "$1")" ]; then ok "$1"; else soft "missing: $1${2:+  ($2)}"; fi; }
