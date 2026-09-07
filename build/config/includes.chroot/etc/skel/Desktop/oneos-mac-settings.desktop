@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+# The name carries the caveat, because the desktop icon is the only place some
+# people will ever read one.
+Name=Mac apps (experimental)
+GenericName=macOS compatibility
+Comment=Command-line macOS software. Photoshop and Final Cut do NOT run.
+Exec=oneos-mac-settings
+Icon=computer-apple-ipad
+Terminal=false
+Categories=System;Settings;

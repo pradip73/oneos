@@ -1,0 +1,74 @@
+#!/bin/sh
+# Experimental macOS support, via Darling.
+#
+# WHAT THIS IS
+# Darling is to macOS what Wine is to Windows: a translation layer, not an
+# emulator and not a copy of macOS. It reimplements Darwin's syscalls, Mach IPC
+# and Apple's frameworks on top of Linux, using Apple's own open-source releases
+# for the lowest layers.
+#
+# WHAT IT HONESTLY DOES AND DOES NOT DO
+# Command-line macOS software works. GUI support is, in the project's own
+# words, "in active development" -- an AppKit built on Cocotron and an early
+# Metal-over-Vulkan backend. The applications people actually want a Mac for --
+# Photoshop, Final Cut, Xcode, Logic -- do not run, and will not for a long
+# time. Anything OneOS says about this must lead with that.
+#
+# WHY IT IS SAFE TO ATTEMPT
+# Modern Darling needs no kernel module: it runs entirely in userspace through
+# darlingserver. So this cannot affect boot, and a failure here costs nothing
+# but macOS support.
+#
+# WHY THE PACKAGES ARE A RISK
+# The project publishes .deb files built for Ubuntu noble, not Debian trixie.
+# They may simply install, or their dependencies may not resolve. apt is asked
+# to work it out and the whole step is non-fatal either way.
+
+set -e
+
+readonly REL="v0.1.20260608"
+readonly ZIP="debs_20260608.zip"
+readonly URL="https://github.com/darlinghq/darling/releases/download/${REL}/${ZIP}"
+# The project's own hello-world package, referenced from their README. A
+# command-line program, because that is the honest demonstration of what this
+# layer can currently do.
+readonly DEMO_PKG="https://darling-misc.s3.eu-central-1.amazonaws.com/mc-4.8.7-0.pkg"
+readonly STAGE="/usr/share/oneos/mac"
+
+echo "I: [oneos] attempting experimental macOS support (Darling)"
+
+mkdir -p "$STAGE"
+tmp=$(mktemp -d)
+
+if ! curl -fsSL --retry 3 --max-time 600 -o "$tmp/darling.zip" "$URL"; then
+	echo "W: [oneos] could not fetch Darling -- no macOS support in this image" >&2
+	rm -rf "$tmp"; exit 0
+fi
+
+if ! unzip -q "$tmp/darling.zip" -d "$tmp/x"; then
+	echo "W: [oneos] Darling archive could not be unpacked -- no macOS support" >&2
+	rm -rf "$tmp"; exit 0
+fi
+
+# apt rather than dpkg -i, so dependencies resolve instead of leaving a
+# half-configured system. The packages are built for Ubuntu, so this is the
+# step most likely to fail, and it is allowed to.
+if apt-get install -y --no-install-recommends "$tmp"/x/debs_*/*.deb; then
+	echo "I: [oneos] Darling installed -- command-line macOS software supported"
+
+	# Stage the demo so trying it needs no download and works offline.
+	if curl -fsSL --retry 2 --max-time 300 -o "$STAGE/demo.pkg" "$DEMO_PKG"; then
+		echo "I: [oneos] macOS demo package staged"
+	else
+		echo "W: [oneos] could not stage the macOS demo package" >&2
+		rm -f "$STAGE/demo.pkg"
+	fi
+else
+	echo "W: [oneos] Darling packages would not install on trixie" >&2
+	echo "W: [oneos] (they are built for Ubuntu noble) -- no macOS support" >&2
+	# Leave nothing half-installed behind.
+	apt-get -y -f install 2>/dev/null || true
+fi
+
+rm -rf "$tmp"
+echo "I: [oneos] macOS step complete"

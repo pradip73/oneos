@@ -55,6 +55,7 @@ PlasmoidItem {
         { name: "Programs",      hint: "Install and remove",     icon: "plasmadiscover",             cmd: "plasma-discover" },
         { name: "Windows apps",  hint: "Wine, sandbox, storage", icon: "wine",                       cmd: "oneos-windows-settings" },
         { name: "Android apps",  hint: "Set up, start, stop",    icon: "phone",                      cmd: "oneos-android-settings" },
+        { name: "Mac apps",      hint: "Experimental, CLI only", icon: "computer-apple-ipad",        cmd: "oneos-mac-settings" },
         { name: "Printers",      hint: "Add and manage",         icon: "printer",                    cmd: "systemsettings kcm_printer_manager" },
         { name: "Keyboard",      hint: "Layout and language",    icon: "input-keyboard",             cmd: "systemsettings kcm_keyboard" },
         { name: "Bluetooth",     hint: "Pair a device",          icon: "network-bluetooth",          cmd: "systemsettings kcm_bluetooth" },

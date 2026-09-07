@@ -1,0 +1,87 @@
+#!/bin/bash
+# OneOS - macOS apps (experimental).
+#
+# The third compatibility layer, and by far the weakest. This screen exists as
+# much to set expectations as to do anything: someone who sees "Mac apps" on a
+# desktop reasonably concludes their Mac software will run, and it will not.
+#
+# So the first thing it says is what does not work, in the same plain words the
+# Android screen uses for Google Play. A layer that is honest about its limits
+# is useful; one that implies more than it delivers costs the whole product its
+# credibility the first time someone tries Photoshop.
+
+set -uo pipefail
+
+readonly DEMO=/usr/share/oneos/mac/demo.pkg
+readonly PREFIX="${HOME}/.local/share/darling"
+
+dlg() { kdialog --title "Mac apps (experimental)" "$@" 2>/dev/null; }
+
+if ! command -v darling >/dev/null 2>&1; then
+	dlg --error "macOS support is not installed on this system.
+
+The Darling packages are built for Ubuntu and could not be installed on OneOS when this image was made.
+
+Windows and Android apps are unaffected."
+	exit 1
+fi
+
+state="Installed. Command-line macOS software runs."
+[ -d "$PREFIX" ] || state="Installed, not yet started."
+
+while true; do
+	choice=$(dlg --menu "$(printf '%s\n\n%s' "$state" \
+"What works: command-line macOS programs.
+
+What does NOT work: Photoshop, Final Cut, Xcode, Logic — anything
+with a window. Darling'\''s graphical support is still being written,
+and the programs people want a Mac for are exactly the ones that
+need it. This is a technology preview, not a feature.")" \
+		demo    "Run the demo (a real macOS program)" \
+		shell   "Open a macOS command line" \
+		install "Install a .pkg file" \
+		reset   "Delete the macOS workspace" \
+		close   "Close") || exit 0
+
+	case "$choice" in
+	demo)
+		if [ ! -f "$DEMO" ]; then
+			dlg --sorry "The demo package is not in this image."
+			continue
+		fi
+		# Konsole, because the demo is a terminal program and pretending
+		# otherwise would misrepresent what this layer does.
+		konsole -e bash -c "
+			echo 'Installing a real macOS package with Darling…'
+			darling shell sudo installer -pkg '$DEMO' -target / || true
+			echo
+			echo 'Now running it. This is macOS software, on OneOS.'
+			darling shell mc || true
+			echo; read -p 'Press Enter to close…'" &
+		;;
+	shell)
+		konsole -e bash -c "
+			echo 'This is a macOS command line, provided by Darling.'
+			echo 'Try:  uname -a   sw_vers   ls /System'
+			echo
+			darling shell || true
+			read -p 'Press Enter to close…'" &
+		;;
+	install)
+		pkg=$(kdialog --getopenfilename "$HOME" "*.pkg|macOS packages" 2>/dev/null) || continue
+		[ -n "$pkg" ] || continue
+		konsole -e bash -c "
+			darling shell sudo installer -pkg '$pkg' -target / || true
+			echo; read -p 'Press Enter to close…'" &
+		;;
+	reset)
+		dlg --warningyesno "Delete the macOS workspace and everything installed in it?" || continue
+		# darling stop first: the prefix is an overlayfs mount while the
+		# server is running, and removing it underneath corrupts it.
+		darling shutdown 2>/dev/null || true
+		rm -rf "$PREFIX"
+		dlg --msgbox "The macOS workspace was removed."
+		;;
+	*) exit 0 ;;
+	esac
+done

@@ -99,6 +99,9 @@ echo "== Compatibility layers =="
 must_exist   "/usr/bin/wine"     "Windows programs will not run"
 must_exist   "/usr/bin/bwrap"    "Windows programs would run UNSANDBOXED"
 should_exist "/usr/bin/waydroid" "no Android support in this image"
+# Darling ships Ubuntu-built packages, so failing to install on trixie is an
+# expected outcome rather than a fault.
+should_exist "/usr/bin/darling"  "no macOS support (expected: Ubuntu-built packages)"
 
 echo "== Preinstalled Windows programs =="
 # The 310 MB that vanished, named individually so a report says which.
