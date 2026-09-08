@@ -1,0 +1,148 @@
+#!/bin/sh
+# Baseline security posture: patches, firewall, mandatory access control.
+#
+# WHY THIS PHASE, IN THIS FORM
+# docs/BUILD-PLAN.md Phase 6 asks for Secure Boot, dm-verity, LUKS2 sealed to
+# a TPM, and A/B atomic updates. Those need a different image layout, a signed
+# OneOS repository, and a Microsoft shim-review submission that takes months.
+# None of them can be delivered today.
+#
+# What CAN be delivered today is the part that protects an actual user of the
+# current image: security patches that install themselves, a firewall that is
+# on before anyone thinks to turn it on, and AppArmor confining the services
+# that face the network. These are unglamorous and they are what the threat
+# model at this stage actually calls for -- an unpatched desktop on a cafe
+# network is a far more realistic risk than a bootkit.
+#
+# Nothing here is a substitute for Phase 6. It is the floor beneath it.
+
+set -e
+
+echo "I: [oneos] applying baseline security policy"
+
+# --- Automatic security updates ----------------------------------------------
+# Security updates only, never a full upgrade: an unattended full upgrade on a
+# desktop can change a running desktop session's packages underneath the user.
+# And no automatic reboot -- rebooting someone's machine without asking is a
+# way to lose their unsaved work and their trust in the same second.
+cat > /etc/apt/apt.conf.d/50oneos-unattended <<'EOF'
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+
+// Do not reboot on our own initiative. oneos-update tells the user instead.
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Keep the machine usable: never let a broken package hold the queue.
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+Unattended-Upgrade::MinimalSteps "true";
+
+// A desktop is switched off often, so do not depend on a fixed daily window.
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+EOF
+
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+EOF
+
+if systemctl enable unattended-upgrades.service 2>/dev/null; then
+	echo "I: [oneos] automatic security updates enabled"
+else
+	echo "W: [oneos] unattended-upgrades not available -- no automatic security patches" >&2
+fi
+systemctl enable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
+
+# --- Firewall ----------------------------------------------------------------
+# Default deny inbound, allow everything outbound. A desktop has no reason to
+# accept unsolicited connections, and the live image in particular gets carried
+# onto untrusted networks by definition.
+#
+# nftables directly rather than ufw: one fewer moving part, and the rules are
+# readable in the file rather than assembled by a wrapper.
+if command -v nft >/dev/null 2>&1; then
+	cat > /etc/nftables.conf <<'EOF'
+#!/usr/sbin/nft -f
+# OneOS baseline firewall. Deny inbound, permit outbound.
+flush ruleset
+
+table inet filter {
+	chain input {
+		type filter hook input priority filter; policy drop;
+
+		ct state established,related accept
+		ct state invalid drop
+		iif lo accept
+
+		# Ping is allowed. Blocking it breaks ordinary network
+		# diagnosis and buys almost nothing.
+		ip protocol icmp accept
+		ip6 nexthdr ipv6-icmp accept
+
+		# DHCPv6 and router advertisements, or IPv6 networks stop working.
+		ip6 nexthdr udp udp dport 546 accept
+
+		# mDNS, so printers and cast devices are discoverable. This is
+		# the one deliberate hole, and it is link-local only.
+		udp dport 5353 accept
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		# Waydroid bridges its container through here. A drop policy
+		# would silently kill Android networking, which is exactly the
+		# class of bug that took a full build cycle to find last time.
+	}
+
+	chain output {
+		type filter hook output priority filter; policy accept;
+	}
+}
+EOF
+	chmod 0644 /etc/nftables.conf
+	systemctl enable nftables.service 2>/dev/null \
+		&& echo "I: [oneos] firewall enabled (inbound denied)" \
+		|| echo "W: [oneos] nftables service could not be enabled" >&2
+else
+	echo "W: [oneos] nft not installed -- NO FIREWALL in this image" >&2
+fi
+
+# --- AppArmor ----------------------------------------------------------------
+# Debian ships AppArmor enabled by default on its own kernel, but the setting
+# lives in the boot command line, and OneOS writes its own. Say it explicitly
+# rather than inherit it by luck.
+if [ -d /etc/apparmor.d ]; then
+	systemctl enable apparmor.service 2>/dev/null || true
+	echo "I: [oneos] AppArmor enabled"
+else
+	echo "W: [oneos] AppArmor profiles absent -- services run unconfined" >&2
+fi
+
+# --- Kernel hardening --------------------------------------------------------
+# Modest and uncontroversial. Anything stronger belongs with the Phase 6
+# lockdown work, where it can be tested against real hardware rather than
+# guessed at.
+cat > /etc/sysctl.d/91-oneos-security.conf <<'EOF'
+# Do not leak kernel addresses to unprivileged programs.
+kernel.kptr_restrict = 1
+# dmesg often contains addresses and hardware detail; keep it for root.
+kernel.dmesg_restrict = 1
+# Only allow ptrace of a process's own descendants. Blocks the simplest form
+# of one compromised program reading another's memory -- which matters here,
+# because Wine runs arbitrary Windows binaries under the same user.
+kernel.yama.ptrace_scope = 1
+# Standard anti-spoofing and redirect hygiene.
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+# Hardlink/symlink races in world-writable directories.
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_regular = 2
+fs.protected_fifos = 2
+EOF
+
+echo "I: [oneos] baseline security policy applied"

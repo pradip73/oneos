@@ -1,0 +1,110 @@
+#!/bin/bash
+# OneOS - Software updates.
+#
+# WHY THIS EXISTS AT ALL
+# The Control Panel's Updates tile used to open plasma-discover. Discover is a
+# competent app store, but as an updater it asks the user to reason about
+# package names and versions, and it is silent about the one thing that
+# actually matters to a non-technical person: is my machine currently unsafe,
+# and do I have to restart.
+#
+# WHAT IT IS NOT
+# This is not the A/B atomic updater described in docs/ARCHITECTURE.md. That
+# needs a different image layout and a signed OneOS repository, neither of
+# which exists yet. This is apt, with the state made legible. Calling it
+# finished would be a lie; leaving the machine with no update path at all
+# would be worse.
+
+set -uo pipefail
+
+readonly REBOOT_FLAG=/var/run/reboot-required
+dlg() { kdialog --title "Software updates" "$@" 2>/dev/null; }
+
+# Counts pending upgrades and, separately, how many come from a security
+# source. The distinction is the whole point: "3 updates" invites "later",
+# "1 of them is a security fix" does not.
+count_updates() {
+	local list
+	list=$(apt-get --just-print upgrade 2>/dev/null | grep -E '^Inst ') || true
+	total=$(printf '%s' "$list" | grep -c . )
+	security=$(printf '%s' "$list" | grep -ci 'security' )
+}
+
+refresh() {
+	konsole --hide-menubar -e bash -c "
+		echo 'Checking for updates…'
+		pkexec apt-get update
+		echo
+		echo 'Done. Closing…'
+		sleep 2" >/dev/null 2>&1
+}
+
+apply() {
+	# In a visible terminal deliberately. An update that appears to hang behind
+	# a spinner is the fastest way to make someone power-cycle a machine
+	# mid-upgrade, which is exactly how a system gets broken beyond repair.
+	konsole --hide-menubar -e bash -c "
+		echo 'Installing updates. Do not switch off the computer.'
+		echo
+		pkexec apt-get -y upgrade
+		echo
+		read -p 'Finished. Press Enter to close…'" >/dev/null 2>&1
+}
+
+while true; do
+	count_updates
+
+	if [ "${total:-0}" -eq 0 ]; then
+		state="This computer is up to date."
+	elif [ "${security:-0}" -gt 0 ]; then
+		state="$total update(s) available — $security of them fix security problems.
+Install these soon."
+	else
+		state="$total update(s) available. None of them are security fixes."
+	fi
+
+	[ -f "$REBOOT_FLAG" ] && state="$state
+
+A restart is needed to finish an earlier update."
+
+	choice=$(dlg --menu "$(printf '%s\n\n%s' "$state" \
+"Updates come from Debian, which OneOS is built on. OneOS's own
+programs are not updated this way yet — that needs the OneOS
+software repository, which is still being built.")" \
+		check   "Check for updates now" \
+		install "Install the available updates" \
+		auto    "Automatic security updates: change setting" \
+		close   "Close") || exit 0
+
+	case "$choice" in
+	check)   refresh ;;
+	install)
+		if [ "${total:-0}" -eq 0 ]; then
+			dlg --msgbox "There is nothing to install."
+			continue
+		fi
+		apply
+		[ -f "$REBOOT_FLAG" ] && \
+			dlg --msgbox "The updates are installed.
+
+Restart the computer when convenient to finish."
+		;;
+	auto)
+		if [ -f /etc/apt/apt.conf.d/20auto-upgrades ] \
+		   && grep -q '"1"' /etc/apt/apt.conf.d/20auto-upgrades; then
+			dlg --yesno "Security updates currently install themselves automatically.
+
+Turn that off?" || continue
+			pkexec sed -i 's/"1"/"0"/g' /etc/apt/apt.conf.d/20auto-upgrades \
+				&& dlg --msgbox "Automatic security updates are off. You will need to install them yourself."
+		else
+			dlg --yesno "Turn automatic security updates back on?
+
+Recommended." || continue
+			pkexec sed -i 's/"0"/"1"/g' /etc/apt/apt.conf.d/20auto-upgrades \
+				&& dlg --msgbox "Automatic security updates are on."
+		fi
+		;;
+	*) exit 0 ;;
+	esac
+done

@@ -348,6 +348,32 @@ Separately you need a **first-run setup wizard** inside the shell (welcome, netw
 - **A CVE response process.** You are now a distributor. Subscribe to Debian security announcements, the kernel CVE feed, and Wine/Mesa/Waydroid advisories. Define an SLA and mean it. This is an ongoing operational commitment, not a task, and it does not stop when you get tired.
 - **Telemetry:** opt-in only, anonymous, self-hosted. Anything else contradicts the positioning.
 
+### 7.3 What is actually implemented today
+
+Sections 7.1 and 7.2 describe the destination. This is the position as of the
+current image, stated separately so the two are never confused:
+
+| Item | Status |
+|---|---|
+| Automatic security updates | **Done.** `unattended-upgrades`, security origins only, no automatic reboot. |
+| User-facing updater | **Done.** `oneos-update`, reached from the Control Panel. Reports whether pending updates are security fixes, and whether a restart is owed. |
+| Default-deny firewall | **Done.** `nftables`, inbound dropped, outbound open. mDNS is the one deliberate exception, for printer discovery. |
+| AppArmor | **Done.** Enabled with Debian's profile set. |
+| Kernel hardening sysctls | **Done.** `/etc/sysctl.d/91-oneos-security.conf`, including `ptrace_scope=1`, which matters because Wine runs arbitrary Windows binaries as the user. |
+| `fwupd` / LVFS | **Done.** The refresh timer is enabled. |
+| Wine sandboxing | **Done.** `bubblewrap`, per-prefix (§3.4). |
+| Signed OneOS APT repository | **Not started.** Until it exists, OneOS's own programs cannot be updated at all — only the Debian packages underneath them. This is the largest gap. |
+| A/B atomic updates, rollback, deltas | **Not started.** Requires a different image layout. |
+| Secure Boot chain, `dm-verity` | **Not started.** Blocked on the Microsoft shim review, which takes months. |
+| LUKS2 + TPM2 by default | **Not started.** Belongs with the installer work in Phase 7. |
+| Immutable `/usr` | **Not started.** |
+
+The firewall's `forward` chain is deliberately left `accept`: Waydroid bridges
+its container through it, and a default drop there would kill Android
+networking silently.
+
+---
+
 ---
 
 ## 8. Where you will need to learn new things

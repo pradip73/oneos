@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+# "Software updates", not "Package manager". The word a non-technical user
+# searches the launcher for is "update".
+Name=Software updates
+GenericName=System updates
+Comment=Install security fixes and keep this computer current
+Exec=oneos-update
+Icon=system-software-update
+Terminal=false
+Categories=System;Settings;
+Keywords=update;upgrade;security;patch;

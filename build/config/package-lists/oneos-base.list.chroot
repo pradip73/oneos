@@ -106,6 +106,20 @@ fwupd
 bluez
 zram-tools
 
+# --- Security baseline -------------------------------------------------------
+# Phase 6 asks for Secure Boot, dm-verity and A/B updates. Those need an image
+# layout and a signing chain that do not exist yet. These four are the part of
+# that phase that protects a user of the CURRENT image, and they are cheap.
+
+# Installs Debian security patches on its own. Configured in hook 0070 to take
+# security origins only, and never to reboot by itself.
+unattended-upgrades
+# Default-deny inbound firewall. Rules in /etc/nftables.conf.
+nftables
+# Mandatory access control for network-facing services.
+apparmor
+apparmor-profiles
+
 # --- Core userland -----------------------------------------------------------
 bash
 coreutils

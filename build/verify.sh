@@ -111,6 +111,16 @@ should_exist "${BUNDLE}/Program Files/VLC/vlc.exe"         "VLC did not download
 should_exist "${BUNDLE}/Program Files/Notepad++/notepad++.exe" "Notepad++ did not download"
 should_exist "/usr/share/oneos/android-apps/fdroid.apk"    "F-Droid was not staged"
 
+echo "== Security baseline =="
+# Each of these is invisible when it works and invisible when it does not,
+# which is precisely why the image has to be asked rather than trusted.
+must_exec   "/usr/bin/oneos-update"                    "no way to install updates"
+should_exist "/usr/bin/unattended-upgrade"             "security patches will NOT install themselves"
+should_exist "/etc/nftables.conf"                      "NO FIREWALL: inbound connections accepted"
+should_exist "/usr/sbin/nft"                           "firewall rules cannot be loaded"
+should_exist "/etc/sysctl.d/91-oneos-security.conf"    "kernel hardening not applied"
+should_exist "/etc/apt/apt.conf.d/20auto-upgrades"     "automatic updates not configured"
+
 echo "== Branding =="
 must_exist   "/etc/xdg/kdeglobals" "accent colour not applied"
 should_exist "/usr/share/plymouth/themes/oneos/logo.png" "boot splash artwork not rendered"
