@@ -51,13 +51,42 @@ if ! unzip -q "$tmp/darling.zip" -d "$tmp/x"; then
 fi
 
 # apt rather than dpkg -i, so dependencies resolve instead of leaving a
-# half-configured system. The packages are built for Ubuntu, so this is the
-# step most likely to fail, and it is allowed to.
-# Keep apt's own words. The last attempt failed here and all the build could
-# say was "would not install" -- which does not distinguish one missing library
-# from a fundamentally incompatible package set, and those need different fixes.
-if apt-get install -y --no-install-recommends "$tmp"/x/debs_*/*.deb 2>"$tmp/apt.err"; then
-	echo "I: [oneos] Darling installed -- command-line macOS software supported"
+# half-configured system.
+#
+# WHY THE SECOND ATTEMPT EXISTS
+# The first build asked apt for every .deb at once and got back:
+#
+#     darling-gui:amd64 Depends libavcodec60 (>= 7:6.0)
+#
+# That is the entire incompatibility. Ubuntu noble carries libavcodec60;
+# trixie moved to libavcodec61 with ffmpeg 7.1. One package, one soname.
+#
+# And it is darling-gui -- the component this hook already says does not
+# usefully work, because Darling's graphical support is unfinished. So
+# dropping it costs nothing that was ever promised, and the command-line
+# support that WAS promised has no such dependency.
+#
+# Whole set first, in case a later release fixes it upstream; then without
+# the GUI package. Not a workaround for a broken thing so much as declining
+# to let the part that cannot work block the part that can.
+install_set() {
+	apt-get install -y --no-install-recommends "$@" 2>"$tmp/apt.err"
+}
+
+# Keep apt's own words either way, so a future failure names itself rather
+# than reporting only that something went wrong.
+if install_set "$tmp"/x/debs_*/*.deb; then
+	gui="with the (unfinished) GUI packages"
+elif install_set $(find "$tmp/x" -name '*.deb' ! -name 'darling-gui*'); then
+	gui="command line only -- darling-gui needs libavcodec60, trixie has 61"
+	echo "W: [oneos] macOS: skipped darling-gui (needs libavcodec60)" >&2
+fi
+
+# apt-get install with an empty argument list exits 0, so a find that matched
+# nothing would report success and ship no macOS support at all. Ask for the
+# binary rather than trusting the exit code.
+if [ -n "${gui:-}" ] && [ -x /usr/bin/darling ]; then
+	echo "I: [oneos] Darling installed -- ${gui}"
 
 	# Stage the demo so trying it needs no download and works offline.
 	if curl -fsSL --retry 2 --max-time 300 -o "$STAGE/demo.pkg" "$DEMO_PKG"; then
