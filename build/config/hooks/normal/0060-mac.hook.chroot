@@ -53,7 +53,10 @@ fi
 # apt rather than dpkg -i, so dependencies resolve instead of leaving a
 # half-configured system. The packages are built for Ubuntu, so this is the
 # step most likely to fail, and it is allowed to.
-if apt-get install -y --no-install-recommends "$tmp"/x/debs_*/*.deb; then
+# Keep apt's own words. The last attempt failed here and all the build could
+# say was "would not install" -- which does not distinguish one missing library
+# from a fundamentally incompatible package set, and those need different fixes.
+if apt-get install -y --no-install-recommends "$tmp"/x/debs_*/*.deb 2>"$tmp/apt.err"; then
 	echo "I: [oneos] Darling installed -- command-line macOS software supported"
 
 	# Stage the demo so trying it needs no download and works offline.
@@ -66,6 +69,10 @@ if apt-get install -y --no-install-recommends "$tmp"/x/debs_*/*.deb; then
 else
 	echo "W: [oneos] Darling packages would not install on trixie" >&2
 	echo "W: [oneos] (they are built for Ubuntu noble) -- no macOS support" >&2
+	# The unmet-dependency lines, so the next attempt starts from a fact.
+	grep -E 'Depends|Conflicts|but it is|not installable|E:' "$tmp/apt.err" 		| sort -u | head -n 12 | while IFS= read -r l; do
+			echo "W: [oneos] apt: $l" >&2
+		done
 	# Leave nothing half-installed behind.
 	apt-get -y -f install 2>/dev/null || true
 fi
