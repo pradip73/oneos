@@ -66,29 +66,69 @@ fi
 # dropping it costs nothing that was ever promised, and the command-line
 # support that WAS promised has no such dependency.
 #
-# AND WHY A THIRD ONE
-# Dropping darling-gui was not enough. The next build answered:
+# AND WHY GUESSING STOPPED
+# Dropping darling-gui was not enough -- `darling` hard-depends on it -- and
+# dropping `darling` too was not enough either, because `darling-extra`
+# depends on `darling`. Each build bought exactly one edge of the dependency
+# graph, which is a slow way to learn a graph.
 #
-#     darling:amd64 Depends darling-gui
+# So this no longer guesses. It reads every package's own Depends field, marks
+# darling-gui as unavailable, and repeatedly marks anything that depends on
+# something already marked -- the transitive closure of "needs the GUI". What
+# is left is, by construction, the largest part of Darling that can be
+# installed on trixie: the command-line runtime, which is exactly and only
+# what OneOS claims for macOS.
 #
-# The top-level `darling` package hard-depends on the GUI it cannot have
-# here, so asking for it always drags in libavcodec60. The remaining
-# possibility is the package underneath both of them -- the runtime itself.
-# If /usr/bin/darling does not come from that package, this fails and says so.
+# If the runtime itself turns out to sit under the GUI, nothing installs and
+# the check below says so rather than shipping a broken half.
 install_set() {
 	apt-get install -y --no-install-recommends "$@" 2>"$tmp/apt.err"
 }
 
-# Keep apt's own words at every step, so a future failure names itself rather
-# than reporting only that something went wrong.
+# package<TAB>file<TAB>depends, once, so the loop below is arithmetic on text
+# rather than repeated dpkg calls.
+: > "$tmp/table"
+for f in $(find "$tmp/x" -name '*.deb' | sort); do
+	printf '%s	%s	%s
+' 		"$(dpkg-deb -f "$f" Package)" "$f" "$(dpkg-deb -f "$f" Depends)" 		>> "$tmp/table"
+done
+
+# libavcodec60 is the root of it: Ubuntu noble has it, trixie moved to 61
+# with ffmpeg 7.1, and darling-gui is the only thing that wants it.
+excluded="darling-gui"
+changed=1
+while [ "$changed" -eq 1 ]; do
+	changed=0
+	while IFS='	' read -r pkg file deps; do
+		# Already excluded? Nothing to decide.
+		case " $excluded " in *" $pkg "*) continue ;; esac
+		for e in $excluded; do
+			if printf '%s' "$deps" | grep -qw -- "$e"; then
+				excluded="$excluded $pkg"
+				changed=1
+				break
+			fi
+		done
+	done < "$tmp/table"
+done
+
+keep=""
+while IFS='	' read -r pkg file deps; do
+	case " $excluded " in *" $pkg "*) continue ;; esac
+	keep="$keep $file"
+done < "$tmp/table"
+
+for e in $excluded; do
+	echo "I: [oneos] macOS: leaving out $e (needs the GUI stack)"
+done
+
+# The whole archive first, in case an upstream release has fixed this; then
+# the GUI-free closure.
 if install_set "$tmp"/x/debs_*/*.deb; then
 	gui="with the (unfinished) GUI packages"
-elif install_set $(find "$tmp/x" -name '*.deb' ! -name 'darling-gui*'); then
-	gui="command line only -- darling-gui needs libavcodec60, trixie has 61"
-	echo "W: [oneos] macOS: skipped darling-gui (needs libavcodec60)" >&2
-elif install_set $(find "$tmp/x" -name '*.deb' ! -name 'darling-gui*' ! -name 'darling_*'); then
-	gui="runtime only -- both darling and darling-gui were unsatisfiable"
-	echo "W: [oneos] macOS: installed the runtime without the darling meta-package" >&2
+elif [ -n "$keep" ] && install_set $keep; then
+	gui="command line only -- the GUI packages need libavcodec60, trixie has 61"
+	echo "W: [oneos] macOS: installed without the GUI stack (expected)" >&2
 fi
 
 # apt-get install with an empty argument list exits 0, so a find that matched
