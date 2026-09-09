@@ -66,20 +66,29 @@ fi
 # dropping it costs nothing that was ever promised, and the command-line
 # support that WAS promised has no such dependency.
 #
-# Whole set first, in case a later release fixes it upstream; then without
-# the GUI package. Not a workaround for a broken thing so much as declining
-# to let the part that cannot work block the part that can.
+# AND WHY A THIRD ONE
+# Dropping darling-gui was not enough. The next build answered:
+#
+#     darling:amd64 Depends darling-gui
+#
+# The top-level `darling` package hard-depends on the GUI it cannot have
+# here, so asking for it always drags in libavcodec60. The remaining
+# possibility is the package underneath both of them -- the runtime itself.
+# If /usr/bin/darling does not come from that package, this fails and says so.
 install_set() {
 	apt-get install -y --no-install-recommends "$@" 2>"$tmp/apt.err"
 }
 
-# Keep apt's own words either way, so a future failure names itself rather
+# Keep apt's own words at every step, so a future failure names itself rather
 # than reporting only that something went wrong.
 if install_set "$tmp"/x/debs_*/*.deb; then
 	gui="with the (unfinished) GUI packages"
 elif install_set $(find "$tmp/x" -name '*.deb' ! -name 'darling-gui*'); then
 	gui="command line only -- darling-gui needs libavcodec60, trixie has 61"
 	echo "W: [oneos] macOS: skipped darling-gui (needs libavcodec60)" >&2
+elif install_set $(find "$tmp/x" -name '*.deb' ! -name 'darling-gui*' ! -name 'darling_*'); then
+	gui="runtime only -- both darling and darling-gui were unsatisfiable"
+	echo "W: [oneos] macOS: installed the runtime without the darling meta-package" >&2
 fi
 
 # apt-get install with an empty argument list exits 0, so a find that matched
@@ -98,6 +107,14 @@ if [ -n "${gui:-}" ] && [ -x /usr/bin/darling ]; then
 else
 	echo "W: [oneos] Darling packages would not install on trixie" >&2
 	echo "W: [oneos] (they are built for Ubuntu noble) -- no macOS support" >&2
+	# The archive's actual contents. Two builds have now been spent inferring
+	# the package layout from apt's complaints one edge at a time; W: rather
+	# than I: because annotations are the only channel readable without a
+	# repository token, so an I: line is a diagnostic nobody can see.
+	find "$tmp/x" -name '*.deb' -printf '%f
+' | sort | while IFS= read -r d; do
+		echo "W: [oneos] macOS archive has: $d" >&2
+	done
 	# The unmet-dependency lines, so the next attempt starts from a fact.
 	grep -E 'Depends|Conflicts|but it is|not installable|E:' "$tmp/apt.err" 		| sort -u | head -n 12 | while IFS= read -r l; do
 			echo "W: [oneos] apt: $l" >&2
