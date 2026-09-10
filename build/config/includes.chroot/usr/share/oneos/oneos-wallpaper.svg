@@ -1,36 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- OneOS default wallpaper.
-     Deliberately quieter than the boot splash. A boot screen is seen for four
-     seconds and should be bold; a wallpaper sits behind everything all day and
-     must never compete with the windows on top of it. Same teal identity, much
-     lower saturation, and the ring motif only as a faint echo. -->
+
+     Soft light on a deep ground: a few large, blurred forms in the OneOS
+     teal, drifting from the lower left, and nothing sharp anywhere. The
+     floating dock and the glass panels sit on top of this, and glass needs
+     something gently varied behind it to read as glass at all; over a flat
+     colour it just looks grey.
+
+     Nothing here is a logo, a swirl, a bloom or a window. It is colour and
+     light, which belongs to nobody. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
   <defs>
     <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"   stop-color="#0E3A34"/>
-      <stop offset="55%"  stop-color="#0A2621"/>
-      <stop offset="100%" stop-color="#061512"/>
+      <stop offset="0%"   stop-color="#0B2E2A"/>
+      <stop offset="60%"  stop-color="#071C19"/>
+      <stop offset="100%" stop-color="#04100E"/>
     </linearGradient>
-    <radialGradient id="glow" cx="18%" cy="12%" r="65%">
-      <stop offset="0%"   stop-color="#0B6E5F" stop-opacity="0.55"/>
-      <stop offset="100%" stop-color="#0B6E5F" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="glow2" cx="88%" cy="94%" r="55%">
-      <stop offset="0%"   stop-color="#12796C" stop-opacity="0.30"/>
-      <stop offset="100%" stop-color="#12796C" stop-opacity="0"/>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="110"/>
+    </filter>
+    <filter id="softer" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="160"/>
+    </filter>
+    <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+      <stop offset="60%"  stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.35"/>
     </radialGradient>
   </defs>
 
   <rect width="1920" height="1080" fill="url(#ground)"/>
-  <rect width="1920" height="1080" fill="url(#glow)"/>
-  <rect width="1920" height="1080" fill="url(#glow2)"/>
 
-  <!-- The mark's ring, enormous and almost invisible. Present if you look for
-       it, never noticeable behind a window. -->
-  <g opacity="0.05" fill="none" stroke="#7FE3CE" stroke-linecap="round">
-    <circle cx="1480" cy="300" r="360" stroke-width="2"
-            stroke-dasharray="2262" stroke-dashoffset="420" transform="rotate(-90 1480 300)"/>
-    <circle cx="1480" cy="300" r="250" stroke-width="1.5"
-            stroke-dasharray="1571" stroke-dashoffset="300" transform="rotate(-90 1480 300)"/>
+  <!-- The light. Three forms, each a different teal, overlapping so the
+       overlaps make a fourth colour nobody chose. -->
+  <g filter="url(#softer)">
+    <ellipse cx="380"  cy="900" rx="620" ry="380" fill="#12907C" opacity="1"/>
   </g>
+  <g filter="url(#soft)">
+    <ellipse cx="900"  cy="1010" rx="520" ry="240" fill="#2BC4AA" opacity="0.7"
+             transform="rotate(-12 900 1010)"/>
+    <ellipse cx="1560" cy="180"  rx="460" ry="300" fill="#166B60" opacity="0.85"/>
+  </g>
+  <g filter="url(#softer)">
+    <ellipse cx="1250" cy="760"  rx="380" ry="220" fill="#9FF0DE" opacity="0.22"/>
+  </g>
+
+  <!-- A faint band of lighter air across the upper third, so the top bar
+       has something to be glass over. -->
+  <g filter="url(#softer)">
+    <rect x="-200" y="60" width="2320" height="260" fill="#157A6C" opacity="0.30"/>
+  </g>
+
+  <rect width="1920" height="1080" fill="url(#vignette)"/>
 </svg>

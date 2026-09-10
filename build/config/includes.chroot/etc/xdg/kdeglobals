@@ -13,6 +13,10 @@ AccentColor=11,110,95
 LastUsedCustomAccentColor=11,110,95
 
 [KDE]
+# The OneOS look-and-feel package: it carries the desktop layout script that
+# Plasma runs on first login. Without this line Plasma lays out its own
+# default desktop and none of the OneOS panels appear.
+LookAndFeelPackage=org.oneos.desktop
 widgetStyle=Breeze
 # Single-click to open is Plasma's default and confuses everyone arriving from
 # Windows, who then open things twice. Double-click matches what they know.

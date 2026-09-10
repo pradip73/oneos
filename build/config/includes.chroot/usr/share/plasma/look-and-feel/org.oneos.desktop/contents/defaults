@@ -1,0 +1,36 @@
+# OneOS look-and-feel defaults. Applied by Plasma when this package is the
+# active LookAndFeelPackage (set in /etc/xdg/kdeglobals).
+#
+# This is the one place a distribution is supposed to define its desktop:
+# Plasma reads it on first login, runs the layout script beside it, and
+# never touches either again. The previous approach -- a hand-written
+# appletsrc in /etc/xdg -- was wrong in a way that was hard to see: Plasma
+# found containments already defined there and so never ran any layout at
+# all, which is a plausible reason the OneOS applets never showed up.
+
+[kdeglobals][KDE]
+widgetStyle=Breeze
+SingleClick=false
+
+[kdeglobals][General]
+ColorScheme=BreezeDark
+AccentColor=11,110,95
+
+[plasmarc][Theme]
+name=default
+
+[kwinrc][org.kde.kdecoration2]
+library=org.kde.breeze
+# Close, and only close, on the right -- one button a newcomer cannot
+# mistake. Minimise and maximise live in the window's title bar menu and
+# the taskbar; Windows users find them there too.
+ButtonsOnLeft=
+ButtonsOnRight=IAX
+
+[Desktop]
+# Folder view, so icons on the desktop exist at all. The installed-program
+# shortcuts and "This PC" depend on it.
+Containment=org.kde.plasma.folder
+
+[Wallpaper]
+Image=/usr/share/wallpapers/OneOS/

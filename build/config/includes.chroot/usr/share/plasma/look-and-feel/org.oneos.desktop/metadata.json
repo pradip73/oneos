@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Id": "org.oneos.desktop",
+        "Name": "OneOS",
+        "Description": "The OneOS desktop: a floating centred dock, a slim top bar, glass surfaces.",
+        "Authors": [ { "Name": "OneOS" } ],
+        "License": "GPL-2.0+",
+        "Version": "0.2.0"
+    },
+    "X-Plasma-MainScript": "defaults"
+}

@@ -84,6 +84,10 @@ for h in oneos-about oneos-shortcuts oneos-welcome oneos-wine-run oneos-run-bund
 	must_exec "/usr/bin/$h"
 done
 
+echo "== Desktop layout =="
+# Without these two the applets below can be perfect and never appear.
+must_exist "/usr/share/plasma/look-and-feel/org.oneos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js"            "Plasma lays out its stock desktop; no OneOS dock or top bar"
+must_exist "/usr/share/plasma/look-and-feel/org.oneos.desktop/contents/defaults"            "look-and-feel package incomplete"
 echo "== Shell applets =="
 for a in launcher taskbar quicksettings controlpanel thiscomputer; do
 	must_exist "/usr/share/plasma/plasmoids/org.oneos.${a}/contents/ui/main.qml" \
