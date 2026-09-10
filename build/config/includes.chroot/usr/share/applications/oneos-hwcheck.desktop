@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=What can this computer run?
+GenericName=Hardware check
+Comment=Which of Windows, Android and macOS programs this computer can handle, and why
+Exec=oneos-hwcheck
+Icon=dialog-question
+Terminal=false
+Categories=System;
+Keywords=hardware;memory;ram;requirements;android;windows;mac;

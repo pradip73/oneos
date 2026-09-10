@@ -63,7 +63,8 @@ PlasmoidItem {
         { name: "Accessibility", hint: "Text size and reader",   icon: "preferences-desktop-accessibility", cmd: "systemsettings kcm_access" },
         { name: "Date and time", hint: "Clock and time zone",    icon: "clock",                      cmd: "systemsettings kcm_clock" },
         { name: "Updates",       hint: "Security and patches",   icon: "system-software-update",     cmd: "oneos-update" },
-        { name: "System info",   hint: "What is inside it",      icon: "computer",                   cmd: "plasmawindowed org.oneos.thiscomputer" }
+        { name: "System info",   hint: "What is inside it",      icon: "computer",                   cmd: "plasmawindowed org.oneos.thiscomputer" },
+        { name: "Can it run?",   hint: "Windows, Android, Mac",  icon: "dialog-question",            cmd: "oneos-hwcheck" }
     ]
 
     property string filter: ""

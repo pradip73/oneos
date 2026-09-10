@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OneOS hardware check
+# First login only, and only when something is unavailable on this machine.
+# A 2 GB user learns on day one that Android is out of reach and why, instead
+# of finding out by watching the desktop freeze.
+Exec=oneos-hwcheck --once
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
+NoDisplay=true

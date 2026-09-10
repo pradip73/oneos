@@ -20,6 +20,12 @@ dlg() { kdialog --title "Android apps" "$@" 2>/dev/null; }
 command -v waydroid >/dev/null 2>&1 || {
 	dlg --error "Android app support is not installed on this system."; exit 1; }
 
+. /usr/lib/oneos/hardware.sh
+oneos_hw_allows android || {
+	dlg --error "Android apps cannot run on this computer.
+
+$ONEOS_HW_REASON"; exit 1; }
+
 # One-time Android setup, if it has not happened yet.
 if [ ! -f /var/lib/waydroid/waydroid.cfg ]; then
 	dlg --yesno "Android needs a one-time setup of about <b>700 MB</b> before any app can run.

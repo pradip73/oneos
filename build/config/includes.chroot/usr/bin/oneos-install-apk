@@ -32,6 +32,16 @@ command -v waydroid >/dev/null 2>&1 || die_gui \
 
 It could not be included when this version of OneOS was built."
 
+# Present is not the same as usable. On a 2 GB machine the Android container
+# would swallow the whole desktop; refuse here, with the reason, rather than
+# let it start and freeze.
+. /usr/lib/oneos/hardware.sh
+oneos_hw_allows android || die_gui "Android apps cannot run on this computer.
+
+$ONEOS_HW_REASON
+
+See Control Panel → \"What can this computer run?\" for the full picture."
+
 name=$(basename "$APK")
 
 # --- First run: fetch the Android system image -------------------------------

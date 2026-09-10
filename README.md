@@ -11,12 +11,20 @@ A custom Linux-based desktop operating system.
 
 | | |
 |---|---|
-| **Minimum (desktop + Windows apps)** | 4 GB RAM, dual-core x86-64, 32 GB storage |
-| **Recommended (with Android apps)** | 8 GB RAM — Plasma idles near 1 GB and the Waydroid container adds 1–1.5 GB on top |
-| **Lite tier** | 2 GB RAM — desktop and browser only; the Windows and Android layers are **not offered** at this tier |
+| **Minimum** | 2 GB RAM, dual-core x86-64, 16 GB storage — desktop, Windows programs, macOS command line |
+| **For Android apps** | 3 GB RAM or more — the Waydroid container is a complete second system and needs 1–1.5 GB of its own |
+| **Recommended** | 4 GB RAM — everything, with room for more than one program at a time |
 | Architecture | x86-64 only for now; arm64 is a post-1.0 item |
 
-The 2 GB restriction is not a tuning problem. The Waydroid Android container alone needs 1–1.5 GB, and a Wine prefix running an app adds 200–600 MB on top of the desktop. Those layers cannot coexist with a usable session in 2 GB on any operating system.
+The OS checks this itself rather than leaving it to the user. `/usr/lib/oneos/hardware.sh`
+holds the thresholds in one place; every Android helper asks it before starting the
+container, and refuses with the reason on a machine that cannot hold it. The installer
+declines to proceed below the minimum. **Control Panel → "Can it run?"** shows the
+verdict for the machine in front of you, and a 2 GB user is told on first login that
+Android is out of reach and why — instead of finding out by watching the desktop freeze.
+
+Nothing is left out of the image for a smaller machine. The layers are present; the
+ones the hardware cannot carry are simply declined until it can.
 
 ## Building the ISO
 

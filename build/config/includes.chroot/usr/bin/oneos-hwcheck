@@ -1,0 +1,57 @@
+#!/bin/bash
+# OneOS - "What can this computer run?"
+#
+# One screen that says, for this specific machine, which of the three
+# compatibility layers will work and which will not, with the reason. It is
+# what the Android layer shows instead of failing on a 2 GB machine, and it
+# is reachable from the Control Panel so the answer is available before
+# anyone tries.
+#
+#   oneos-hwcheck            graphical report
+#   oneos-hwcheck --text     plain text, for a terminal or a bug report
+#   oneos-hwcheck --once     show the report on first login only, and only
+#                            if something is unavailable
+
+set -uo pipefail
+. /usr/lib/oneos/hardware.sh
+
+mode="${1:-}"
+
+if [ "$mode" = "--once" ]; then
+	stamp="${XDG_STATE_HOME:-$HOME/.local/state}/oneos/hwcheck-shown"
+	[ -f "$stamp" ] && exit 0
+	mkdir -p "$(dirname "$stamp")"; touch "$stamp"
+	# Nothing to say if everything works. A first-login popup that only
+	# confirms good news is noise.
+	oneos_hw_allows android && oneos_hw_allows base && exit 0
+	# Let the welcome page open first; two windows at once is a mess.
+	sleep 9
+fi
+
+line() {
+	# "yes"/"no", label, reason
+	if oneos_hw_allows "$1"; then
+		printf '  ✔  %s\n' "$2"
+	else
+		printf '  ✘  %s\n     %s\n' "$2" "$ONEOS_HW_REASON"
+	fi
+}
+
+report=$(
+	printf 'This computer: %s GB memory, %s processor core(s), %s.\n\n' \
+		"$ONEOS_HW_RAM_GB" "$ONEOS_HW_CORES" "$ONEOS_HW_ARCH"
+	line base    "OneOS desktop"
+	line windows "Windows programs (.exe)"
+	line android "Android apps (.apk)"
+	line mac     "macOS programs (command line only)"
+	printf '\nRequirements: 2 GB memory and two cores for OneOS, Windows and\n'
+	printf 'macOS programs. Android apps need 3 GB or more.\n'
+	printf '\nThe programs that are not available are still installed.\n'
+	printf 'Add memory to this computer and they will simply start working.\n'
+)
+
+if [ "$mode" = "--text" ] || ! command -v kdialog >/dev/null 2>&1; then
+	printf '%s\n' "$report"
+else
+	kdialog --title "What can this computer run?" --msgbox "$report" 2>/dev/null
+fi

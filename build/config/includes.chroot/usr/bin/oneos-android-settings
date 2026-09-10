@@ -21,6 +21,17 @@ It could not be included when this version of OneOS was built."
 	exit 1
 fi
 
+. /usr/lib/oneos/hardware.sh
+if ! oneos_hw_allows android; then
+	dlg --error "Android apps cannot run on this computer.
+
+$ONEOS_HW_REASON
+
+Nothing needs to be uninstalled. If this computer gets more memory,
+Android apps will simply become available."
+	exit 1
+fi
+
 initialised=false
 [ -f /var/lib/waydroid/waydroid.cfg ] && initialised=true
 

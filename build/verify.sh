@@ -111,6 +111,13 @@ should_exist "${BUNDLE}/Program Files/VLC/vlc.exe"         "VLC did not download
 should_exist "${BUNDLE}/Program Files/Notepad++/notepad++.exe" "Notepad++ did not download"
 should_exist "/usr/share/oneos/android-apps/fdroid.apk"    "F-Droid was not staged"
 
+echo "== Hardware gating =="
+# On a 2 GB machine the Android container would swallow the desktop. These
+# are what stop that, and they are invisible in a 4 GB test VM.
+must_exist  "/usr/lib/oneos/hardware.sh"                   "helpers cannot check memory; Android would start on 2 GB machines"
+must_exec   "/usr/bin/oneos-hwcheck"                       "no hardware report for the user"
+should_exist "/etc/xdg/autostart/oneos-hwcheck.desktop"    "2 GB users are not told on first login"
+
 echo "== Security baseline =="
 # Each of these is invisible when it works and invisible when it does not,
 # which is precisely why the image has to be asked rather than trusted.

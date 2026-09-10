@@ -114,6 +114,34 @@ else
 	echo "W: [oneos] calamares settings.conf not found" >&2
 fi
 
+# --- Installer minimum requirements ------------------------------------------
+# The installer's own gate, separate from the desktop's hardware check: it
+# runs before anything is written to disk, which is the last moment a refusal
+# costs nothing. Calamares' welcome module already knows how to check RAM and
+# storage and how to say no politely; it only needs the numbers.
+#
+# 1.5 GiB rather than 2: a nominal 2 GB machine reports ~1.9 GiB, and this
+# must not turn away the exact machine the 2 GB floor was chosen for.
+# 16 GB of disk: the image, a Wine prefix, Android's system image, and room
+# for the user's files.
+WELCOME=""
+for c in /etc/calamares/modules/welcome.conf /usr/share/calamares/modules/welcome.conf; do
+	[ -f "$c" ] && { WELCOME="$c"; break; }
+done
+if [ -n "$WELCOME" ]; then
+	sed -i -E \
+		-e 's/^([[:space:]]*requiredStorage:).*/\1 16/' \
+		-e 's/^([[:space:]]*requiredRam:).*/\1 1.5/' \
+		"$WELCOME"
+	if grep -qE '^[[:space:]]*requiredRam:[[:space:]]*1\.5' "$WELCOME"; then
+		echo "I: [oneos] installer minimum set: 1.5 GiB RAM, 16 GB disk"
+	else
+		echo "W: [oneos] welcome.conf has no requiredRam line -- installer will not check memory" >&2
+	fi
+else
+	echo "W: [oneos] calamares welcome.conf not found -- installer will not check requirements" >&2
+fi
+
 # --- Installer launcher ------------------------------------------------------
 # calamares-settings-debian ships the desktop entry that appears on the live
 # desktop, and it says "Install Debian". Changing the branding component inside
