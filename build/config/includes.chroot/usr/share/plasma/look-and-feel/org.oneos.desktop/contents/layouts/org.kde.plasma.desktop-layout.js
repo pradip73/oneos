@@ -72,13 +72,20 @@ top.addWidget("org.kde.plasma.panelspacer");
 var tray = top.addWidget("org.kde.plasma.systemtray");
 
 /* ---- Dock ------------------------------------------------------------ */
+/* Full width, floating. The first version was "fit": only as wide as its
+ * contents. On a desktop with nothing open that made a dock the size of a
+ * Start button, and with two windows open there was no room to show either
+ * -- the task list scrolled inside a strip a few centimetres wide. A
+ * taskbar is for seeing what is open; it needs the width of the screen.
+ * Floating keeps the margin and the rounded corners, so it still reads as
+ * an object rather than a strip cut off the bottom. */
 var dock = new Panel;
 dock.location   = "bottom";
 dock.height     = 3 * gridUnit;
 dock.hiding     = "none";
-dock.floating   = true;          /* the margin and the rounded corners */
-dock.alignment  = "center";
-dock.lengthMode = "fit";         /* as wide as its contents, no wider */
+dock.floating   = true;
+dock.alignment  = "left";
+dock.lengthMode = "fill";
 dock.opacity    = "translucent";
 
 /* Start. Falls back to Kickoff if org.oneos.launcher fails to load, so the

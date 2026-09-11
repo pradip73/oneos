@@ -116,11 +116,14 @@ zram-tools
 unattended-upgrades
 # Default-deny inbound firewall. Rules in /etc/nftables.conf.
 nftables
-# Mandatory access control for network-facing services.
+# Mandatory access control. Package-shipped profiles only; see hook 0070 for
+# why the apparmor-profiles bundle is deliberately not here.
 apparmor
-apparmor-profiles
 
 # --- Core userland -----------------------------------------------------------
+# dbus-send: what the Start menu's Power and Lock buttons use to reach the
+# session manager. Its predecessor, qdbus, was assumed and never installed.
+dbus-bin
 bash
 coreutils
 util-linux

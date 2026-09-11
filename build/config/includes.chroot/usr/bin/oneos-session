@@ -1,0 +1,49 @@
+#!/bin/sh
+# OneOS - lock, and the power menu.
+#
+#   oneos-session lock
+#   oneos-session power
+#
+# WHY A SCRIPT AND NOT A D-BUS CALL IN THE APPLET
+# The Start menu and quick settings used to call `qdbus`, which is not
+# installed -- Debian ships it as qdbus6 in a package the image never had --
+# so the Power button did nothing and said nothing. That is the worst kind
+# of failure: a button that looks alive and is dead.
+#
+# dbus-send comes with dbus itself and is always present. And if the session
+# manager's prompt is unavailable for any reason, this asks the question
+# itself and does the plain thing, because "the power button does not work"
+# must not be a sentence anyone says about this OS again.
+
+set -u
+
+case "${1:-}" in
+lock)
+	loginctl lock-session 2>/dev/null && exit 0
+	exec dbus-send --session --dest=org.freedesktop.ScreenSaver \
+		/ScreenSaver org.freedesktop.ScreenSaver.Lock
+	;;
+power)
+	# Plasma's own dialog: shutdown goes through the session manager, so
+	# unsaved work still gets a prompt.
+	if dbus-send --session --print-reply --dest=org.kde.LogoutPrompt \
+	     /LogoutPrompt org.kde.LogoutPrompt.promptAll >/dev/null 2>&1; then
+		exit 0
+	fi
+	# Fallback: ask directly. Same three answers, no session manager.
+	choice=$(kdialog --title "Power" --menu "What would you like to do?" \
+		off     "Shut down" \
+		restart "Restart" \
+		logout  "Log out" \
+		cancel  "Cancel" 2>/dev/null) || exit 0
+	case "$choice" in
+	off)     exec systemctl poweroff ;;
+	restart) exec systemctl reboot ;;
+	logout)  exec loginctl terminate-session "${XDG_SESSION_ID:-self}" ;;
+	esac
+	;;
+*)
+	echo "usage: oneos-session lock|power" >&2
+	exit 2
+	;;
+esac

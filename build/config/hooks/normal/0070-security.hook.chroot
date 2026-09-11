@@ -87,6 +87,14 @@ table inet filter {
 		# mDNS, so printers and cast devices are discoverable. This is
 		# the one deliberate hole, and it is link-local only.
 		udp dport 5353 accept
+
+		# The Android container. Waydroid bridges it on waydroid0 and the
+		# host serves it DHCP and DNS from there; with those dropped the
+		# container comes up with no address and every Android app reports
+		# "no internet" while the host is plainly online. Everything on
+		# that interface originates on this machine, so accepting it opens
+		# nothing to the outside.
+		iifname "waydroid0" accept
 	}
 
 	chain forward {
@@ -113,6 +121,14 @@ fi
 # Debian ships AppArmor enabled by default on its own kernel, but the setting
 # lives in the boot command line, and OneOS writes its own. Say it explicitly
 # rather than inherit it by luck.
+#
+# Only the profiles individual packages ship for themselves -- which is what
+# a stock Debian desktop runs. The apparmor-profiles bundle was added and
+# then removed: it enforces profiles for programs it was never tested with
+# here, and the two layers this OS exists for both do unusual things (Wine
+# maps and executes foreign binaries; Waydroid starts an LXC container). A
+# confinement rule that silently breaks one of those is worse than none,
+# because nothing on screen says "AppArmor" -- the program simply fails.
 if [ -d /etc/apparmor.d ]; then
 	systemctl enable apparmor.service 2>/dev/null || true
 	echo "I: [oneos] AppArmor enabled"

@@ -122,6 +122,14 @@ must_exist  "/usr/lib/oneos/hardware.sh"                   "helpers cannot check
 must_exec   "/usr/bin/oneos-hwcheck"                       "no hardware report for the user"
 should_exist "/etc/xdg/autostart/oneos-hwcheck.desktop"    "2 GB users are not told on first login"
 
+echo "== Shell plumbing =="
+# The Power button called qdbus, which was never installed. These are what
+# every button in the shell now goes through.
+must_exec "/usr/bin/oneos-session"  "Power and Lock buttons do nothing"
+must_exec "/usr/bin/oneos-launch"   "programs that fail to start fail silently"
+must_exec "/usr/bin/oneos-doctor"   "no health check for bug reports"
+must_exec "/usr/bin/dbus-send"      "oneos-session cannot reach the session manager"
+
 echo "== Security baseline =="
 # Each of these is invisible when it works and invisible when it does not,
 # which is precisely why the image has to be asked rather than trusted.

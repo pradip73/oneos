@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OneOS doctor
+GenericName=Health check
+Comment=Check that Windows, Android and the desktop are working, and say what is not
+Exec=oneos-doctor
+Icon=system-help
+Terminal=false
+Categories=System;
+Keywords=doctor;diagnose;bug;problem;not working;

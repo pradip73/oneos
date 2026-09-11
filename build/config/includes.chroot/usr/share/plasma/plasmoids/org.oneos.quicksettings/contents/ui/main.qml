@@ -66,7 +66,7 @@ PlasmoidItem {
     function refresh() {
         exec.run("nmcli radio wifi")
         exec.run("rfkill list bluetooth")
-        exec.run("qdbus6 org.kde.KWin /org/kde/KWin/NightLight org.freedesktop.DBus.Properties.Get org.kde.KWin.NightLight running")
+        exec.run("dbus-send --session --print-reply --dest=org.kde.KWin /org/kde/KWin/NightLight org.freedesktop.DBus.Properties.Get string:org.kde.KWin.NightLight string:running")
     }
 
     /* Poll rather than subscribe: the state can be changed from Settings, from
@@ -163,7 +163,7 @@ PlasmoidItem {
                     iconName: "redshift-status-on"
                     active: root.nightOn
                     onToggled: {
-                        exec.run("qdbus6 org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.toggle")
+                        exec.run("dbus-send --session --dest=org.kde.KWin /org/kde/KWin/NightLight org.kde.KWin.NightLight.toggle")
                         root.nightOn = !root.nightOn
                     }
                 }
@@ -171,7 +171,7 @@ PlasmoidItem {
                     label: i18n("Settings")
                     iconName: "preferences-system"
                     active: false
-                    onToggled: { exec.run("systemsettings"); root.expanded = false }
+                    onToggled: { exec.run("oneos-launch systemsettings"); root.expanded = false }
                 }
             }
 
@@ -192,14 +192,14 @@ PlasmoidItem {
                 }
                 PlasmaComponents.ToolButton {
                     icon.name: "system-lock-screen"
-                    onClicked: { exec.run("loginctl lock-session"); root.expanded = false }
+                    onClicked: { exec.run("oneos-session lock"); root.expanded = false }
                     QQC2.ToolTip.text: i18n("Lock")
                     QQC2.ToolTip.visible: hovered
                 }
                 PlasmaComponents.ToolButton {
                     icon.name: "system-shutdown"
                     onClicked: {
-                        exec.run("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptAll")
+                        exec.run("oneos-session power")
                         root.expanded = false
                     }
                     QQC2.ToolTip.text: i18n("Power")

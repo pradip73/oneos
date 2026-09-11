@@ -1,0 +1,48 @@
+#!/bin/sh
+# OneOS - run a program from the desktop shell, and say so if it fails.
+#
+#   oneos-launch COMMAND [ARGS...]
+#
+# WHY
+# The Start menu, Control Panel and quick settings run programs through
+# Plasma's executable data engine, which reports nothing: a command that is
+# missing, not executable, or crashes on start simply does not appear, and
+# the person who clicked is left wondering whether they clicked. Every
+# "X does not open" report this project has had was that silence.
+#
+# So: run it detached, watch it for a moment, and if it dies early, show the
+# last lines of what it said. A message that names the failure is a bug
+# report; a button that does nothing is a mystery.
+
+set -u
+[ $# -gt 0 ] || { echo "usage: oneos-launch COMMAND [ARGS...]" >&2; exit 2; }
+
+log=$(mktemp -t oneos-launch.XXXXXX)
+
+# setsid + nohup: outlive the shell that started us, and never hold the
+# panel's process open.
+setsid nohup "$@" >"$log" 2>&1 </dev/null &
+pid=$!
+
+# Three seconds is long enough for "command not found", a missing library, a
+# script error, or a dialog tool that is not installed -- and short enough
+# that a program which opens and then keeps running is never mistaken for one
+# that failed.
+i=0
+while [ $i -lt 30 ]; do
+	if ! kill -0 "$pid" 2>/dev/null; then
+		wait "$pid" 2>/dev/null; rc=$?
+		if [ "$rc" -ne 0 ]; then
+			tail=$(tail -n 6 "$log" | cut -c1-200)
+			kdialog --title "OneOS" --detailederror \
+				"<b>$1</b> could not start (exit code $rc)." \
+				"${tail:-No further information was printed.}" 2>/dev/null \
+			|| printf 'oneos-launch: %s failed (%s)\n%s\n' "$1" "$rc" "$tail" >&2
+			rm -f "$log"; exit "$rc"
+		fi
+		break
+	fi
+	sleep 0.1; i=$((i + 1))
+done
+rm -f "$log"
+exit 0

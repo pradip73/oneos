@@ -50,7 +50,10 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: bar
         Layout.fillWidth: true
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 4
+        /* In a panel sized to its contents this minimum IS the width, so it
+         * must hold something: two buttons at their floor plus a margin. */
+        Layout.minimumWidth: minButton * 2 + Kirigami.Units.largeSpacing
+        Layout.preferredWidth: Math.max(Layout.minimumWidth, tasksModel.count * maxButton)
 
         readonly property int maxButton: Kirigami.Units.gridUnit * 11
         readonly property int minButton: Kirigami.Units.gridUnit * 3

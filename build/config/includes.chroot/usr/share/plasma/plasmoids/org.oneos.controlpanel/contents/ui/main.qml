@@ -41,7 +41,8 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function (source) { disconnectSource(source) }
-        function run(cmd) { if (cmd) connectSource(cmd) }
+        /* oneos-launch reports a program that fails to start; see that script. */
+        function run(cmd) { if (cmd) connectSource("oneos-launch " + cmd) }
     }
 
     /* Named after what the user is looking for, not after the subsystem that
@@ -64,7 +65,8 @@ PlasmoidItem {
         { name: "Date and time", hint: "Clock and time zone",    icon: "clock",                      cmd: "systemsettings kcm_clock" },
         { name: "Updates",       hint: "Security and patches",   icon: "system-software-update",     cmd: "oneos-update" },
         { name: "System info",   hint: "What is inside it",      icon: "computer",                   cmd: "plasmawindowed org.oneos.thiscomputer" },
-        { name: "Can it run?",   hint: "Windows, Android, Mac",  icon: "dialog-question",            cmd: "oneos-hwcheck" }
+        { name: "Can it run?",   hint: "Windows, Android, Mac",  icon: "dialog-question",            cmd: "oneos-hwcheck" },
+        { name: "Doctor",        hint: "Find what is broken",    icon: "system-help",                cmd: "oneos-doctor" }
     ]
 
     property string filter: ""

@@ -22,6 +22,16 @@ set -uo pipefail
 readonly APP="$1"
 readonly PREFIX_ROOT="${XDG_DATA_HOME:-$HOME/.local/share}/oneos/prefixes"
 
+# Closes a kdialog progress bar. kdialog prints "org.kde.kdialog-PID /ProgressDialog"
+# and the conventional way to close it is qdbus, which this image never had,
+# so the "please wait" box outlived the wait and looked like a hang. dbus-send
+# ships with dbus itself.
+close_progress() {
+	[ -n "${1:-}" ] || return 0
+	set -- $1
+	dbus-send --session --dest="$1" "$2" org.kde.kdialog.ProgressDialog.close 2>/dev/null || true
+}
+
 die_gui() {
 	kdialog --title "OneOS" --error "$1" 2>/dev/null || printf '%s\n' "$1" >&2
 	exit 1
@@ -65,7 +75,7 @@ if [ ! -d "$prefix/drive_c" ]; then
 	kdialog --title "OneOS" --progressbar "Getting ready to run ${name}…" 0 >/tmp/oneos-dlg.$$ 2>/dev/null
 	dbusref=$(cat /tmp/oneos-dlg.$$ 2>/dev/null); rm -f /tmp/oneos-dlg.$$
 	wait $boot_pid
-	[ -n "${dbusref:-}" ] && qdbus $dbusref close 2>/dev/null
+	close_progress "${dbusref:-}"
 fi
 
 # --- Run it ------------------------------------------------------------------

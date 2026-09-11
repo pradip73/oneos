@@ -42,7 +42,13 @@ PlasmoidItem {
         engine: "executable"
         connectedSources: []
         onNewData: function (source) { disconnectSource(source) }
+        /* Through oneos-launch, so a program that fails to start says so
+         * instead of silently not appearing. Search and session commands
+         * are run directly; they are not programs a user watches for. */
         function exec(cmd) {
+            if (cmd) { connectSource("oneos-launch " + cmd) }
+        }
+        function raw(cmd) {
             if (cmd) { connectSource(cmd) }
         }
     }
@@ -134,7 +140,7 @@ PlasmoidItem {
                  * be a worse launcher and a month of work. */
                 onAccepted: {
                     if (text.length > 0) {
-                        runner.exec("krunner --replace \"" + text.replace(/"/g, "") + "\"")
+                        runner.raw("krunner --replace \"" + text.replace(/"/g, "") + "\"")
                         root.expanded = false
                         text = ""
                     }
@@ -221,15 +227,16 @@ PlasmoidItem {
                     display: QQC2.AbstractButton.IconOnly
                     QQC2.ToolTip.text: text
                     QQC2.ToolTip.visible: hovered
-                    onClicked: { runner.exec("loginctl lock-session"); root.expanded = false }
+                    onClicked: { runner.raw("oneos-session lock"); root.expanded = false }
                 }
                 PlasmaComponents.ToolButton {
                     icon.name: "system-shutdown"
                     text: i18n("Power")
                     onClicked: {
-                        /* ksmserver's own dialog, so shutdown goes through the
-                         * session manager and unsaved work still gets a prompt. */
-                        runner.exec("qdbus org.kde.LogoutPrompt /LogoutPrompt promptAll")
+                        /* oneos-session: the session manager's own dialog when
+                         * it is reachable, a plain menu when it is not. The old
+                         * qdbus call went to a binary that was never installed. */
+                        runner.raw("oneos-session power")
                         root.expanded = false
                     }
                 }

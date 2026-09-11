@@ -1,0 +1,161 @@
+#!/bin/bash
+# OneOS - one-page health check.
+#
+#   oneos-doctor            report in a window
+#   oneos-doctor --text     report to the terminal
+#
+# WHY
+# "Windows apps do not open" is not a bug report; it is a symptom, and the
+# same symptom has had four different causes in this project's history: a
+# helper without its executable bit, a dialog tool that was not installed,
+# a firewall rule, a missing package. Each took a build cycle to find by
+# guessing. This asks the machine directly and prints the answers, so the
+# next report can say which line is red.
+#
+# Every check is read-only. Nothing here changes anything.
+
+set -uo pipefail
+
+ok()   { printf '  [ok]    %s\n' "$1"; }
+bad()  { printf '  [FAIL]  %s\n' "$1"; }
+info() { printf '  [info]  %s\n' "$1"; }
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+report=$(
+	echo "OneOS doctor - $(date '+%Y-%m-%d %H:%M')"
+	echo
+	echo "System"
+	. /etc/os-release 2>/dev/null; info "${PRETTY_NAME:-unknown}, kernel $(uname -r)"
+	info "session: ${XDG_SESSION_TYPE:-?}, desktop: ${XDG_CURRENT_DESKTOP:-?}"
+	if [ -r /usr/lib/oneos/hardware.sh ]; then
+		. /usr/lib/oneos/hardware.sh
+		info "${ONEOS_HW_RAM_GB} GB memory, ${ONEOS_HW_CORES} cores, ${ONEOS_HW_FREE_MB} MB free in home"
+	fi
+	echo
+
+	echo "Desktop shell"
+	for t in kdialog plasmawindowed dbus-send notify-send xdg-open; do
+		if have "$t"; then ok "$t"; else bad "$t is missing - dialogs and launchers depend on it"; fi
+	done
+	for a in launcher taskbar quicksettings controlpanel thiscomputer; do
+		if [ -f "/usr/share/plasma/plasmoids/org.oneos.$a/contents/ui/main.qml" ]; then
+			ok "applet org.oneos.$a present"
+		else
+			bad "applet org.oneos.$a MISSING"
+		fi
+	done
+	if [ -f /usr/share/plasma/look-and-feel/org.oneos.desktop/contents/layouts/org.kde.plasma.desktop-layout.js ]; then
+		ok "OneOS desktop layout present"
+	else
+		bad "desktop layout MISSING - Plasma will lay out its own"
+	fi
+	rc="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
+	if [ -f "$rc" ]; then
+		if grep -q "org.oneos.launcher" "$rc"; then
+			ok "this user's panel contains the OneOS Start menu"
+		else
+			bad "this user's panel does NOT contain org.oneos.launcher (layout did not apply, or a fallback loaded)"
+		fi
+	fi
+	if have journalctl; then
+		errs=$(journalctl --user -b --no-pager -q 2>/dev/null | grep -i "org.oneos" | grep -iE "error|fail|cannot|not found" | tail -n 5)
+		if [ -n "$errs" ]; then
+			bad "Plasma logged errors about OneOS applets:"
+			printf '%s\n' "$errs" | sed 's/^/          /'
+		else
+			ok "no applet errors in this session's log"
+		fi
+	fi
+	echo
+
+	echo "OneOS helpers"
+	n=0
+	for h in /usr/bin/oneos-*; do
+		[ -f "$h" ] || continue
+		n=$((n + 1))
+		[ -x "$h" ] || bad "$(basename "$h") is NOT executable"
+	done
+	ok "$n helpers checked"
+	echo
+
+	echo "Windows programs"
+	if have wine; then
+		ok "wine $(wine --version 2>/dev/null | sed 's/^wine-//')"
+		if have bwrap; then
+			ok "sandbox (bwrap) present"
+			if bwrap --ro-bind / / --dev /dev --proc /proc --unshare-all true 2>/tmp/oneos-bw.err; then
+				ok "sandbox can start"
+			else
+				bad "sandbox CANNOT start: $(head -n1 /tmp/oneos-bw.err)"
+			fi
+			rm -f /tmp/oneos-bw.err
+		else
+			bad "bwrap missing - programs would run unsandboxed"
+		fi
+		p="$HOME/.local/share/oneos/prefixes/oneos-bundled/drive_c/Program Files/VLC/vlc.exe"
+		if [ -f "$p" ]; then
+			ok "bundled VLC present in this user's prefix"
+		else
+			bad "bundled VLC not in this user's home (skel not copied?)"
+		fi
+	else
+		bad "wine is not installed"
+	fi
+	echo
+
+	echo "Android apps"
+	if have waydroid; then
+		ok "waydroid present"
+		if [ -r /usr/lib/oneos/hardware.sh ]; then
+			if oneos_hw_allows android; then ok "hardware allows Android"; else bad "hardware gate refuses: $ONEOS_HW_REASON"; fi
+		fi
+		if [ -f /var/lib/waydroid/waydroid.cfg ]; then
+			ok "Android system image set up"
+		else
+			info "not set up yet (one-time ~700 MB download on first use)"
+		fi
+		if [ -d /dev/binderfs ] || grep -q binder /proc/filesystems 2>/dev/null; then
+			ok "binderfs available"
+		else
+			bad "binderfs missing - kernel lacks CONFIG_ANDROID_BINDERFS"
+		fi
+		if systemctl is-active --quiet waydroid-container; then info "container running"; else info "container not running (starts on demand)"; fi
+		if have nft; then
+			if nft list ruleset 2>/dev/null | grep -q 'iifname "waydroid0"'; then
+				ok "firewall admits the container's network"
+			else
+				bad "firewall has no waydroid0 rule - Android will have no internet"
+			fi
+		fi
+	else
+		bad "waydroid is not installed"
+	fi
+	echo
+
+	echo "macOS programs"
+	if have darling; then ok "darling present (command line only)"; else info "darling not installed (expected on some builds)"; fi
+	echo
+
+	echo "Network and security"
+	if nmcli -t -f STATE general 2>/dev/null | grep -q connected; then ok "network connected"; else bad "network not connected"; fi
+	if getent hosts deb.debian.org >/dev/null 2>&1; then ok "DNS resolves"; else bad "DNS does not resolve"; fi
+	if systemctl is-active --quiet nftables; then ok "firewall active"; else bad "firewall not active"; fi
+	if systemctl is-active --quiet apparmor; then ok "AppArmor active"; else info "AppArmor not active"; fi
+	if have aa-status; then
+		conf=$(aa-status 2>/dev/null | grep -iE 'wine|bwrap|waydroid|lxc' | tr '\n' ' ')
+		[ -n "$conf" ] && info "AppArmor confines: $conf"
+	fi
+	dmesg 2>/dev/null | grep -i 'apparmor="DENIED"' | tail -n 3 | sed 's/^/          denied: /'
+	echo
+	echo "Send a photo of this window with any bug report."
+)
+
+if [ "${1:-}" = "--text" ] || ! have kdialog; then
+	printf '%s\n' "$report"
+else
+	tmp=$(mktemp)
+	printf '%s\n' "$report" > "$tmp"
+	kdialog --title "OneOS doctor" --textbox "$tmp" 720 640 2>/dev/null
+	rm -f "$tmp"
+fi
