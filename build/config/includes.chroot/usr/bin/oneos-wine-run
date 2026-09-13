@@ -44,34 +44,51 @@ if ! command -v bwrap >/dev/null 2>&1; then
 	WINEPREFIX="$PREFIX" exec "$@"
 fi
 
+# WHAT THE SANDBOX MUST LET THROUGH, AND WHY THE FIRST VERSION DID NOT
+# The first version hid /tmp behind a fresh tmpfs and bound /run/user read-
+# only. Both were wrong in the same way: a Unix socket cannot be connected
+# through a read-only mount (connect() needs write permission on the socket
+# file), and /tmp/.X11-unix was not there at all. Wine draws through X11 --
+# XWayland, on this desktop -- so every Windows program started, found no
+# display, and exited. From the outside that is "it opens and closes".
+#
+# So the sockets a program needs are bound individually, writable, and
+# nothing else from those directories is: not the session D-Bus, not other
+# programs' state. That is what Flatpak does too.
+#
+# /sys is needed read-only because Mesa finds the GPU through /sys/dev/char.
+#
 # --unshare-all then --share-net: no shared process table, IPC, or user
 # namespace, but the network stays -- installers download, and apps expect it.
 #
 # /dev is bound rather than filtered because Wine needs the GPU node for
 # rendering and the sound devices for audio, and enumerating them individually
 # breaks on machines with different hardware.
-exec bwrap \
-	--ro-bind /usr /usr \
-	--ro-bind /etc /etc \
-	--ro-bind-try /opt /opt \
-	--symlink usr/lib  /lib \
-	--symlink usr/lib32 /lib32 \
-	--symlink usr/lib64 /lib64 \
-	--symlink usr/bin  /bin \
-	--symlink usr/sbin /sbin \
-	--proc /proc \
-	--dev-bind /dev /dev \
-	--tmpfs /tmp \
-	--tmpfs /run \
-	--ro-bind-try /run/user/"$(id -u)" /run/user/"$(id -u)" \
-	--bind "$PREFIX" "$PREFIX" \
-	--bind "$SHARED" "$SHARED" \
-	--ro-bind-try "$(dirname "${2:-/nonexistent}")" "$(dirname "${2:-/nonexistent}")" \
-	--setenv WINEPREFIX "$PREFIX" \
-	--setenv HOME "$PREFIX" \
-	--setenv XDG_RUNTIME_DIR "/run/user/$(id -u)" \
-	--unshare-all \
-	--share-net \
-	--die-with-parent \
-	--new-session \
-	"$@"
+uid=$(id -u)
+RT="${XDG_RUNTIME_DIR:-/run/user/$uid}"
+
+sock_args=()
+# Display. X11 first; the Wayland socket too, for a Wine built with the
+# Wayland driver.
+[ -d /tmp/.X11-unix ] && sock_args+=(--bind /tmp/.X11-unix /tmp/.X11-unix)
+for w in "$RT"/wayland-*; do
+	[ -S "$w" ] && sock_args+=(--bind "$w" "$w")
+done
+[ -n "${XAUTHORITY:-}" ] && [ -f "$XAUTHORITY" ] && sock_args+=(--ro-bind "$XAUTHORITY" "$XAUTHORITY")
+# Sound.
+[ -S "$RT/pipewire-0" ] && sock_args+=(--bind "$RT/pipewire-0" "$RT/pipewire-0")
+[ -d "$RT/pulse" ]      && sock_args+=(--bind "$RT/pulse" "$RT/pulse")
+
+# Keep what the program printed, so a failure can be shown rather than lost.
+# Wine is chatty on stderr even when healthy, so only the exit code decides.
+log=$(mktemp -t oneos-wine.XXXXXX)
+
+bwrap 	--ro-bind /usr /usr 	--ro-bind /etc /etc 	--ro-bind /sys /sys 	--ro-bind-try /opt /opt 	--symlink usr/lib  /lib 	--symlink usr/lib32 /lib32 	--symlink usr/lib64 /lib64 	--symlink usr/bin  /bin 	--symlink usr/sbin /sbin 	--proc /proc 	--dev-bind /dev /dev 	--tmpfs /tmp 	--tmpfs "$RT" 	"${sock_args[@]}" 	--bind "$PREFIX" "$PREFIX" 	--bind "$SHARED" "$SHARED" 	--ro-bind-try "$(dirname "${2:-/nonexistent}")" "$(dirname "${2:-/nonexistent}")" 	--setenv WINEPREFIX "$PREFIX" 	--setenv HOME "$PREFIX" 	--setenv XDG_RUNTIME_DIR "$RT" 	--unshare-all 	--share-net 	--die-with-parent 	--new-session 	"$@" 2> >(tee "$log" >&2)
+rc=$?
+
+if [ $rc -ne 0 ]; then
+	tail=$(grep -v '^[0-9a-f]*:fixme:' "$log" | tail -n 8 | cut -c1-160)
+	kdialog --title "OneOS" --detailederror 		"The Windows program stopped (exit code $rc)." 		"${tail:-Nothing was printed.}" 2>/dev/null || true
+fi
+rm -f "$log"
+exit $rc

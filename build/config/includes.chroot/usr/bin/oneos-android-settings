@@ -64,18 +64,19 @@ while true; do
 		dlg --yesno "Download and set up Android now?
 
 This is about 700 MB and happens once." || continue
-		if pkexec waydroid init; then
+		if out=$(pkexec waydroid init 2>&1); then
 			initialised=true
 			dlg --msgbox "Android is ready. Double-click any .apk file to install an app."
 		else
-			dlg --sorry "Setup did not finish. Check that you are online and try again."
+			kdialog --title "Android apps" --detailederror "Setup did not finish." 				"$(printf '%s' "$out" | tail -n 12)" 2>/dev/null
 		fi
 		;;
 	start)
 		$initialised || { dlg --sorry "Set Android up first."; continue; }
-		pkexec systemctl start waydroid-container.service 2>/dev/null || true
-		session_running || (waydroid session start >/dev/null 2>&1 &)
-		dlg --msgbox "Starting Android. It takes a few seconds the first time."
+		# The shared bring-up: container, then session, with the reason
+		# shown if either refuses.
+		. /usr/lib/oneos/android.sh
+		android_ensure_running && dlg --msgbox "Android is running."
 		;;
 	stop)
 		waydroid session stop >/dev/null 2>&1 || true

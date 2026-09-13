@@ -118,6 +118,7 @@ should_exist "/usr/share/oneos/android-apps/fdroid.apk"    "F-Droid was not stag
 echo "== Hardware gating =="
 # On a 2 GB machine the Android container would swallow the desktop. These
 # are what stop that, and they are invisible in a 4 GB test VM.
+must_exist  "/usr/lib/oneos/android.sh"                    "Android helpers cannot start the container"
 must_exist  "/usr/lib/oneos/hardware.sh"                   "helpers cannot check memory; Android would start on 2 GB machines"
 must_exec   "/usr/bin/oneos-hwcheck"                       "no hardware report for the user"
 should_exist "/etc/xdg/autostart/oneos-hwcheck.desktop"    "2 GB users are not told on first login"
