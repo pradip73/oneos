@@ -46,7 +46,7 @@ to work through first:
 3. **Test on real hardware.** Wi-Fi, suspend/resume, battery, brightness keys,
    and Waydroid — none of which a VM can tell you anything about.
 4. **0.3:** own welcome app, Waydroid working, 4 GB machine test.
-5. **Own foundations:** custom kernel (Phase 1b), own APT repo, A/B updates.
+5. **Own foundations:** custom kernel (Phase 1b, workflow ready), own APT repo (built; needs the signing key, see `docs/REPOSITORY.md`), A/B updates.
 6. **The real OneOS:** Phase 2 compositor, Phase 3 shell — 8–12 months. Plasma
    is deleted at that point.
 

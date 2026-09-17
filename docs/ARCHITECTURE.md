@@ -362,7 +362,7 @@ current image, stated separately so the two are never confused:
 | Kernel hardening sysctls | **Done.** `/etc/sysctl.d/91-oneos-security.conf`, including `ptrace_scope=1`, which matters because Wine runs arbitrary Windows binaries as the user. |
 | `fwupd` / LVFS | **Done.** The refresh timer is enabled. |
 | Wine sandboxing | **Done.** `bubblewrap`, per-prefix (§3.4). |
-| Signed OneOS APT repository | **Not started.** Until it exists, OneOS's own programs cannot be updated at all — only the Debian packages underneath them. This is the largest gap. |
+| Signed OneOS APT repository | **Built; awaiting the key.** `oneos-desktop` is packaged from the same tree the ISO ships and installed into the image, so dpkg owns every OneOS file. The publish workflow signs and serves it from GitHub Pages and refuses to run unsigned. See `docs/REPOSITORY.md` for the one-time key setup. |
 | A/B atomic updates, rollback, deltas | **Not started.** Requires a different image layout. |
 | Secure Boot chain, `dm-verity` | **Not started.** Blocked on the Microsoft shim review, which takes months. |
 | LUKS2 + TPM2 by default | **Not started.** Belongs with the installer work in Phase 7. |

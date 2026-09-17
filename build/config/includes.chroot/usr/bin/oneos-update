@@ -67,10 +67,17 @@ Install these soon."
 
 A restart is needed to finish an earlier update."
 
-	choice=$(dlg --menu "$(printf '%s\n\n%s' "$state" \
-"Updates come from Debian, which OneOS is built on. OneOS's own
-programs are not updated this way yet — that needs the OneOS
-software repository, which is still being built.")" \
+	# Whether OneOS's own packages can arrive here depends on the keyring
+	# package, which the ISO carries once the archive key is committed.
+	if [ -f /etc/apt/sources.list.d/oneos.sources ]; then
+		origin="Updates come from Debian, which OneOS is built on, and from
+the OneOS repository for OneOS's own programs."
+	else
+		origin="Updates come from Debian, which OneOS is built on. OneOS's own
+programs are not updated on this machine yet: it was installed from
+an image made before the OneOS repository key existed."
+	fi
+	choice=$(dlg --menu "$(printf '%s\n\n%s' "$state" "$origin")" \
 		check   "Check for updates now" \
 		install "Install the available updates" \
 		auto    "Automatic security updates: change setting" \

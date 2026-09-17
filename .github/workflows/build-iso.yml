@@ -19,6 +19,7 @@ on:
     paths:
       - 'build/**'
       - 'build.sh'
+      - 'packaging/**'
       - 'VERSION'
       - '.github/workflows/build-iso.yml'
   workflow_dispatch:
@@ -67,6 +68,20 @@ jobs:
           done
           [ $bad -eq 0 ] && echo "package lists OK"
           exit $bad
+
+      - name: Build the OneOS packages into the image
+        # The same files the ISO has always carried, now also as a package
+        # live-build installs from config/packages.chroot. That makes dpkg
+        # the owner of every OneOS file on the installed system, which is
+        # what lets the repository replace them later. When the archive key
+        # is committed, the keyring package rides along and the installed
+        # system trusts the repository from its first boot.
+        run: |
+          chmod +x packaging/build-deb.sh
+          packaging/build-deb.sh out/packages
+          mkdir -p build/config/packages.chroot
+          cp out/packages/*.deb build/config/packages.chroot/
+          ls -l build/config/packages.chroot
 
       - name: Build ISO
         run: |

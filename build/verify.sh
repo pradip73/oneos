@@ -123,6 +123,11 @@ must_exist  "/usr/lib/oneos/hardware.sh"                   "helpers cannot check
 must_exec   "/usr/bin/oneos-hwcheck"                       "no hardware report for the user"
 should_exist "/etc/xdg/autostart/oneos-hwcheck.desktop"    "2 GB users are not told on first login"
 
+echo "== Packaging =="
+# dpkg must own the OneOS files, or the repository can never replace them.
+must_exist   "/var/lib/dpkg/info/oneos-desktop.list"          "oneos-desktop package not installed; updates cannot replace OneOS files"
+should_exist "/etc/apt/sources.list.d/oneos.sources"          "no OneOS repository configured (archive key not committed yet)"
+
 echo "== Shell plumbing =="
 # The Power button called qdbus, which was never installed. These are what
 # every button in the shell now goes through.

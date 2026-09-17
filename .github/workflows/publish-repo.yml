@@ -1,0 +1,159 @@
+name: Publish OneOS repository
+
+# Builds the OneOS packages and publishes them as a signed apt repository on
+# GitHub Pages. This is what lets a machine installed from the ISO receive
+# updates to OneOS's own programs: without it, the desktop is frozen at
+# whatever the ISO contained the day it was downloaded.
+#
+# WHAT IT NEEDS
+#   secret APT_SIGNING_KEY   the armored private key (docs/REPOSITORY.md)
+#   packaging/oneos-archive.asc  the matching public key, committed
+#
+# Refuses to publish unsigned. An unsigned repository teaches apt to trust
+# whatever appears at a URL, and a URL is exactly the thing an attacker can
+# be in the path of. Better no updates than updates from anyone.
+#
+# Runs on every push to main that touches what the packages are built from,
+# and on demand. Each publish carries the date and commit in its version,
+# so apt sees every one as newer than the last.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build/config/includes.chroot/**'
+      - 'packaging/**'
+      - 'VERSION'
+      - '.github/workflows/publish-repo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to push the gh-pages branch
+  pages: write
+  id-token: write
+
+concurrency:
+  group: apt-repo
+  cancel-in-progress: false
+
+jobs:
+  repo:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+
+    steps:
+      - name: Install tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            dpkg-dev apt-utils gnupg rsync git ca-certificates
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Refuse to publish unsigned
+        env:
+          KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::APT_SIGNING_KEY secret is not set. The repository will not be published unsigned. See docs/REPOSITORY.md."
+            exit 1
+          fi
+          if [ ! -f packaging/oneos-archive.asc ]; then
+            echo "::error::packaging/oneos-archive.asc (the public key) is not committed. See docs/REPOSITORY.md."
+            exit 1
+          fi
+
+      - name: Import the signing key
+        env:
+          KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          printf '%s\n' "$KEY" | gpg --batch --import
+          fpr=$(gpg --batch --list-secret-keys --with-colons | awk -F: '/^fpr/ {print $10; exit}')
+          [ -n "$fpr" ] || { echo "::error::no secret key was imported"; exit 1; }
+          echo "FPR=$fpr" >> "$GITHUB_ENV"
+          # The committed public key must be THIS key, or the ISO would trust
+          # one key while the repository signs with another.
+          pubfpr=$(gpg --batch --show-keys --with-colons packaging/oneos-archive.asc | awk -F: '/^fpr/ {print $10; exit}')
+          if [ "$fpr" != "$pubfpr" ]; then
+            echo "::error::packaging/oneos-archive.asc ($pubfpr) is not the public half of APT_SIGNING_KEY ($fpr)"
+            exit 1
+          fi
+          echo "signing with $fpr"
+
+      - name: Build the packages
+        run: |
+          chmod +x packaging/build-deb.sh
+          export ONEOS_BUILD_ID="$(date -u +%Y%m%d).$(git rev-parse --short HEAD)"
+          packaging/build-deb.sh out/packages
+          ls -l out/packages
+
+      - name: Assemble the repository
+        # A flat, static layout apt-ftparchive can produce and GitHub Pages
+        # can serve: dists/trixie/main/binary-all + pool/. No server-side
+        # code, nothing to keep running.
+        run: |
+          set -e
+          R=repo/apt
+          mkdir -p "$R/pool/main" "$R/dists/trixie/main/binary-all" "$R/dists/trixie/main/binary-amd64"
+          cp out/packages/*.deb "$R/pool/main/"
+
+          # Keep previous versions already published, so a machine mid-way
+          # through an upgrade never finds its files gone.
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch --depth=1 origin gh-pages
+            mkdir -p /tmp/prev
+            git --work-tree=/tmp/prev checkout origin/gh-pages -- apt/pool 2>/dev/null || true
+            git reset -q 2>/dev/null || true
+            [ -d /tmp/prev/apt/pool/main ] && cp -n /tmp/prev/apt/pool/main/*.deb "$R/pool/main/" || true
+          fi
+
+          cd "$R"
+          for arch in all amd64; do
+            apt-ftparchive --arch "$arch" packages pool > "dists/trixie/main/binary-$arch/Packages"
+            gzip -9kf "dists/trixie/main/binary-$arch/Packages"
+          done
+          apt-ftparchive \
+            -o APT::FTPArchive::Release::Origin=OneOS \
+            -o APT::FTPArchive::Release::Label=OneOS \
+            -o APT::FTPArchive::Release::Suite=trixie \
+            -o APT::FTPArchive::Release::Codename=trixie \
+            -o APT::FTPArchive::Release::Architectures="all amd64" \
+            -o APT::FTPArchive::Release::Components=main \
+            -o APT::FTPArchive::Release::Description="OneOS packages for Debian trixie" \
+            release dists/trixie > dists/trixie/Release
+
+          gpg --batch --yes --default-key "$FPR" --clearsign -o dists/trixie/InRelease dists/trixie/Release
+          gpg --batch --yes --default-key "$FPR" -abs   -o dists/trixie/Release.gpg dists/trixie/Release
+          cp ../../packaging/oneos-archive.asc oneos-archive.asc
+
+          cat > index.html <<'EOF'
+          <!doctype html><title>OneOS repository</title>
+          <h1>OneOS apt repository</h1>
+          <p>Machines running OneOS use this automatically. To add it by hand on Debian trixie:</p>
+          <pre>curl -fsSL https://pradip73.github.io/oneos/apt/oneos-archive.asc | sudo gpg --dearmor -o /etc/apt/keyrings/oneos-archive.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/oneos-archive.gpg] https://pradip73.github.io/oneos/apt trixie main" | sudo tee /etc/apt/sources.list.d/oneos.list
+          sudo apt update && sudo apt install oneos-desktop</pre>
+          EOF
+
+      - name: Publish to gh-pages
+        run: |
+          set -e
+          cd repo
+          git init -q
+          git config user.name "oneos-ci"
+          git config user.email "oneos-ci@users.noreply.github.com"
+          git checkout -q -b gh-pages
+          touch .nojekyll
+          git add -A
+          git commit -q -m "OneOS repository: $(date -u +%Y-%m-%dT%H:%MZ) from ${GITHUB_SHA::8}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          echo "published https://pradip73.github.io/oneos/apt"
+
+      - name: Upload the packages too
+        uses: actions/upload-artifact@v4
+        with:
+          name: oneos-packages
+          path: out/packages/*.deb
+          retention-days: 30
