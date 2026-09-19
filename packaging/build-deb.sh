@@ -62,11 +62,15 @@ mkdir -p "$pkg/DEBIAN"
 rsync -a "$SRC/" "$pkg/" \
 	--exclude '/lib/live' \
 	--exclude '/usr/share/calamares' \
-	--exclude '/etc/default'
-# /etc/default/zramswap is zram-tools' own conffile. As a loose file in the
-# ISO it simply overrides it; in a package it is a conflict, and dpkg refused
-# to unpack oneos-desktop over it -- which is how the first build with this
-# script failed. Anything that overrides another package's file stays ISO-only.
+	--exclude '/etc/default' \
+	--exclude '/etc/os-release'
+# /etc/default/zramswap belongs to zram-tools and /etc/os-release to
+# base-files. As loose files in the ISO they simply override; in a package
+# each is a conflict, and dpkg refused to unpack oneos-desktop over them --
+# one per build, which is how the first two builds with this script failed.
+# Anything that overrides another package's file stays ISO-only. The ISO
+# workflow now prints dpkg's "trying to overwrite" line, so a third such
+# file would name itself rather than cost another guess.
 
 # The policy files are conffiles: dpkg will not overwrite a version the
 # administrator has edited, which is the correct behaviour for /etc.
