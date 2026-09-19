@@ -61,7 +61,12 @@ mkdir -p "$pkg/DEBIAN"
 # useless on an installed system where Calamares is gone.
 rsync -a "$SRC/" "$pkg/" \
 	--exclude '/lib/live' \
-	--exclude '/usr/share/calamares'
+	--exclude '/usr/share/calamares' \
+	--exclude '/etc/default'
+# /etc/default/zramswap is zram-tools' own conffile. As a loose file in the
+# ISO it simply overrides it; in a package it is a conflict, and dpkg refused
+# to unpack oneos-desktop over it -- which is how the first build with this
+# script failed. Anything that overrides another package's file stays ISO-only.
 
 # The policy files are conffiles: dpkg will not overwrite a version the
 # administrator has edited, which is the correct behaviour for /etc.

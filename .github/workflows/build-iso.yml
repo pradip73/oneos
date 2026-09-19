@@ -104,6 +104,12 @@ jobs:
             grep -E '^E:' build/build.log | tail -n 15 | while IFS= read -r l; do
               echo "::error::$l"
             done
+            # dpkg's own reasons sit above the E: lines and were being cut
+            # off: file conflicts, failed maintainer scripts, unmet deps.
+            grep -E 'dpkg: (error|warning)|trying to overwrite|subprocess .* returned|Depends: .* not' build/build.log \
+              | sort -u | tail -n 10 | while IFS= read -r l; do
+              echo "::error::DPKG $l"
+            done
             echo "-- last 15 lines --"
             tail -n 15 build/build.log | while IFS= read -r l; do
               echo "::error::TAIL $l"
