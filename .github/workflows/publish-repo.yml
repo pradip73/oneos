@@ -37,7 +37,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Secrets cannot be read in a job-level `if`, so a first job answers the
+  # question and the real one keys off its answer. The point: "no key yet" is
+  # a state, not a failure. Until the key exists every push was ending in a
+  # red cross that meant nothing, and a red cross that means nothing teaches
+  # people to ignore red crosses.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.k.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: k
+        env:
+          KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::notice::Not publishing: the APT_SIGNING_KEY secret is not set yet. See docs/REPOSITORY.md."
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+          elif [ ! -f packaging/oneos-archive.asc ]; then
+            echo "::notice::Not publishing: packaging/oneos-archive.asc (the public key) is not committed yet. See docs/REPOSITORY.md."
+            echo "ready=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=yes" >> "$GITHUB_OUTPUT"
+          fi
+
   repo:
+    needs: check
+    if: needs.check.outputs.ready == 'yes'
     runs-on: ubuntu-latest
     container:
       image: debian:trixie
@@ -51,19 +78,6 @@ jobs:
 
       - name: Check out
         uses: actions/checkout@v4
-
-      - name: Refuse to publish unsigned
-        env:
-          KEY: ${{ secrets.APT_SIGNING_KEY }}
-        run: |
-          if [ -z "$KEY" ]; then
-            echo "::error::APT_SIGNING_KEY secret is not set. The repository will not be published unsigned. See docs/REPOSITORY.md."
-            exit 1
-          fi
-          if [ ! -f packaging/oneos-archive.asc ]; then
-            echo "::error::packaging/oneos-archive.asc (the public key) is not committed. See docs/REPOSITORY.md."
-            exit 1
-          fi
 
       - name: Import the signing key
         env:
