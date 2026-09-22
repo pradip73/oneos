@@ -8,9 +8,15 @@ Last updated at the end of the first build-and-test session.
 compatibility layers, built entirely in GitHub Actions. It boots, reaches a
 Plasma desktop, and carries OneOS branding.
 
-**The ISO to use is the newest successful run:**
-https://github.com/pradip73/oneos/actions → open the top green run → Artifacts →
-`oneos-0.2.0-amd64-iso` (~2.7 GB)
+**The ISO to use is the newest release:**
+https://github.com/pradip73/oneos/releases
+
+Download every `.part` file plus `join.txt`, then follow `join.txt` to put them
+back into one ISO. They are split because GitHub caps a single file at 2 GB.
+
+These need no GitHub login and **can be resumed** if the download stops, which
+the Actions artifact could not -- a 2.8 GB zip over an ordinary connection
+usually died partway.
 
 ## Verified working in a VM
 

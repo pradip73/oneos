@@ -23,6 +23,14 @@ on:
       - 'VERSION'
       - '.github/workflows/build-iso.yml'
   workflow_dispatch:
+    inputs:
+      mac:
+        description: 'Include the experimental macOS layer (command line only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # to publish the ISO as a release
 
 jobs:
   iso:
@@ -41,7 +49,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             live-build debootstrap xorriso squashfs-tools rsync \
-            ca-certificates git curl file
+            ca-certificates git curl file jq
           echo "live-build version:"
           dpkg-query -W -f='${Version}\n' live-build
 
@@ -68,6 +76,20 @@ jobs:
           done
           [ $bad -eq 0 ] && echo "package lists OK"
           exit $bad
+
+      - name: Decide on the macOS layer
+        # Off unless asked for. Darling installs only its command-line half on
+        # trixie -- the GUI packages need libavcodec60 and this is 61 -- and a
+        # command line is not what anyone wants a Mac for. It costs a download
+        # on every build and disk in every image, so it is now opt-in: tick
+        # the box on a manual run when there is a reason to test it.
+        run: |
+          if [ "${{ github.event.inputs.mac }}" = "true" ]; then
+            echo "macOS layer: requested"
+          else
+            rm -f build/config/hooks/normal/0060-mac.hook.chroot
+            echo "macOS layer: skipped (run this workflow manually with the box ticked to include it)"
+          fi
 
       - name: Build the OneOS packages into the image
         # The same files the ISO has always carried, now also as a package
@@ -174,6 +196,72 @@ jobs:
             out/*.sha256
           retention-days: 30
           compression-level: 0   # the ISO is already squashfs-compressed
+
+      - name: Publish the ISO as a release
+        # An Actions artifact is a zip that needs a GitHub login, cannot be
+        # resumed, and is where a 2.8 GB download over an ordinary connection
+        # dies -- which is exactly what happened. Release assets are plain
+        # files, need no login, and answer HTTP range requests, so a browser
+        # or a download manager can carry on where it stopped. GitHub caps a
+        # single asset at 2 GiB, so the image ships split, with join.txt
+        # saying how to put it back in one command.
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          iso=$(ls out/*.iso | head -1)
+          tag="iso-${VERSION}-${GITHUB_RUN_NUMBER}"
+          cd out
+
+          # 1900 MiB keeps every part under the 2 GiB cap with room to spare.
+          split -b 1900M -d "$(basename "$iso")" "oneos-${VERSION}.iso.part"
+          sha256sum oneos-*.iso.part* > parts.sha256
+
+          cat > join.txt <<EOT
+          Put the ISO back together, then check it.
+
+          Windows -- open Command Prompt in the folder with the parts:
+            copy /b oneos-${VERSION}.iso.part00 + oneos-${VERSION}.iso.part01 oneos-${VERSION}-amd64.iso
+
+          Linux or macOS:
+            cat oneos-${VERSION}.iso.part* > oneos-${VERSION}-amd64.iso
+
+          Then check it. A download that stopped early looks exactly like a
+          broken image -- it just will not boot, with no explanation:
+            Windows:  certutil -hashfile oneos-${VERSION}-amd64.iso SHA256
+            Linux:    sha256sum -c *.sha256
+          Compare the result with the .sha256 file in this release.
+          EOT
+
+          body="OneOS ${VERSION}, build ${GITHUB_RUN_NUMBER}.
+
+          The ISO is split because GitHub caps one file at 2 GB. Download every
+          part and join.txt, then follow it.
+
+          These files need no login, and a download that stops can be resumed."
+
+          rel=$(jq -nc --arg t "$tag" --arg n "OneOS $VERSION (build $GITHUB_RUN_NUMBER)" --arg b "$body" \
+                 '{tag_name:$t,name:$n,body:$b,draft:false,prerelease:true}')
+          up=$(curl -fsSL -X POST \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -d "$rel" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases" \
+               | jq -r '.upload_url' | sed 's/{.*}//')
+          [ -n "$up" ] && [ "$up" != "null" ] || { echo "::error::could not create the release"; exit 1; }
+
+          for f in oneos-*.iso.part* parts.sha256 join.txt *.sha256; do
+            [ -f "$f" ] || continue
+            echo "uploading $f ($(du -h "$f" | cut -f1))"
+            curl -fsSL -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$f" \
+              "${up}?name=${f}" > /dev/null
+          done
+          echo "::notice::Download without a login: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}"
 
       - name: Upload build log on failure
         if: failure()
