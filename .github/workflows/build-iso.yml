@@ -252,7 +252,10 @@ jobs:
                | jq -r '.upload_url' | sed 's/{.*}//')
           [ -n "$up" ] && [ "$up" != "null" ] || { echo "::error::could not create the release"; exit 1; }
 
-          for f in oneos-*.iso.part* parts.sha256 join.txt *.sha256; do
+          # sort -u, because the globs overlap: parts.sha256 matches both its
+          # own name and *.sha256, and uploading one name twice is a 422 that
+          # failed the build after every file was already safely uploaded.
+          for f in $(ls oneos-*.iso.part* *.sha256 join.txt 2>/dev/null | sort -u); do
             [ -f "$f" ] || continue
             echo "uploading $f ($(du -h "$f" | cut -f1))"
             curl -fsSL -X POST \
