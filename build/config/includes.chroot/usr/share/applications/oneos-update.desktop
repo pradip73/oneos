@@ -8,5 +8,5 @@ Comment=Install security fixes and keep this computer current
 Exec=oneos-update
 Icon=system-software-update
 Terminal=false
-Categories=System;Settings;
+Categories=Settings;
 Keywords=update;upgrade;security;patch;

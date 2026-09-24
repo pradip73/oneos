@@ -110,9 +110,12 @@ jobs:
             # no Plasma installed, so every Plasma type is unknown here.
             # A syntax error is a syntax error regardless.
             errs=$(printf '%s\n' "$msgs" | grep -E '^Error:' \
-                     | grep -viE 'import|module|unresolved|was not found' || true)
+                     | grep -viE 'import|module|unresolved|was not found|unqualified' || true)
+            # [unqualified] is filtered for the same reason: with no Plasma
+            # installed here, even anchors and Layout on a Plasma type read
+            # as unknown. That is the modules' absence, not a mistake.
             warns=$(printf '%s\n' "$msgs" | grep -E '^Warning:' \
-                     | grep -viE 'import|module|unresolved|was not found' || true)
+                     | grep -viE 'import|module|unresolved|was not found|unqualified' || true)
 
             [ -n "$errs" ] && { printf '%s\n' "$errs" | while IFS= read -r l; do
               echo "::error::QML $f: $l"; done; rc=1; }
@@ -127,7 +130,9 @@ jobs:
       - name: Desktop entries
         run: |
           rc=0
-          for f in $(find build/config/includes.chroot -name '*.desktop'); do
+          # -type f, because a look-and-feel package is a DIRECTORY whose name
+          # ends in .desktop, and the first run reported it as a missing file.
+          for f in $(find build/config/includes.chroot -type f -name '*.desktop'); do
             out=$(desktop-file-validate "$f" 2>&1) || rc=1
             [ -n "$out" ] && printf '%s\n' "$out" | while IFS= read -r l; do
               echo "::warning::$l"

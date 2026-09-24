@@ -11,4 +11,4 @@ Comment=Change how this computer works
 Exec=plasmawindowed org.oneos.controlpanel
 Icon=preferences-system
 Terminal=false
-Categories=System;Settings;
+Categories=Settings;

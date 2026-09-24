@@ -8,4 +8,4 @@ Comment=Command-line macOS software. Photoshop and Final Cut do NOT run.
 Exec=oneos-mac-settings
 Icon=computer-apple-ipad
 Terminal=false
-Categories=System;Settings;
+Categories=Settings;
