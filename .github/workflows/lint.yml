@@ -52,8 +52,18 @@ jobs:
           files="$files build.sh build/verify.sh packaging/build-deb.sh"
           for f in $files; do
             [ -f "$f" ] || continue
+            # Excluded, with the reason, so that what is left is worth
+            # stopping for:
+            #   SC1090/SC1091  cannot follow a sourced path that exists
+            #                  only on the installed system
+            #   SC2155         "declare and assign separately" -- style;
+            #                  none of these assignments check a status
+            #   SC2038         find|xargs without -print0; these paths are
+            #                  ours and contain no newlines
+            #   SC2034         unused variable -- wrong for a library whose
+            #                  variables are read by whoever sources it
             out=$(shellcheck -f gcc -S warning \
-                    -e SC1090,SC1091 \
+                    -e SC1090,SC1091,SC2155,SC2038,SC2034 \
                     "$f" 2>&1) || rc=1
             [ -n "$out" ] && printf '%s\n' "$out" | while IFS= read -r l; do
               case "$l" in
