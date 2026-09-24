@@ -94,16 +94,32 @@ jobs:
           fi
           echo "using $QMLLINT"
 
+          # Qt warns once per invocation about a non-UTF-8 locale, which the
+          # first version reported as though it were a fault in the applets.
+          export LANG=C.UTF-8 LC_ALL=C.UTF-8
+
           rc=0
           for f in $(find build/config/includes.chroot/usr/share/plasma -name '*.qml'); do
             out=$("$QMLLINT" "$f" 2>&1) || true
-            # Unresolved imports are expected: this container has no Plasma.
+            # Only qmllint's own message lines. Everything else it prints is
+            # the source line and a row of carets under it -- context for a
+            # human, and meaningless on their own in an annotation.
+            msgs=$(printf '%s\n' "$out" | grep -E '^(Error|Warning|Info):' || true)
+
+            # Unresolved imports and types are expected: this container has
+            # no Plasma installed, so every Plasma type is unknown here.
             # A syntax error is a syntax error regardless.
-            real=$(printf '%s\n' "$out" | grep -viE 'import|module|^$|^Warning:.*not found' || true)
-            if [ -n "$real" ]; then
-              printf '%s\n' "$real" | while IFS= read -r l; do echo "::error::QML $f: $l"; done
-              rc=1
-            fi
+            errs=$(printf '%s\n' "$msgs" | grep -E '^Error:' \
+                     | grep -viE 'import|module|unresolved|was not found' || true)
+            warns=$(printf '%s\n' "$msgs" | grep -E '^Warning:' \
+                     | grep -viE 'import|module|unresolved|was not found' || true)
+
+            [ -n "$errs" ] && { printf '%s\n' "$errs" | while IFS= read -r l; do
+              echo "::error::QML $f: $l"; done; rc=1; }
+            # Reported, not gated: a warning here is worth reading and is not
+            # by itself proof the applet will fail to load.
+            [ -n "$warns" ] && printf '%s\n' "$warns" | while IFS= read -r l; do
+              echo "::warning::QML $f: $l"; done
           done
           echo "qmllint finished (rc=$rc)"
           exit $rc
