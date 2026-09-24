@@ -110,12 +110,15 @@ jobs:
             # no Plasma installed, so every Plasma type is unknown here.
             # A syntax error is a syntax error regardless.
             errs=$(printf '%s\n' "$msgs" | grep -E '^Error:' \
-                     | grep -viE 'import|module|unresolved|was not found|unqualified' || true)
-            # [unqualified] is filtered for the same reason: with no Plasma
-            # installed here, even anchors and Layout on a Plasma type read
-            # as unknown. That is the modules' absence, not a mistake.
+                     | grep -viE 'import|module|unresolved|was not found|unqualified|missing-property' || true)
+            # [unqualified] and [missing-property] are filtered for the same
+            # reason: with no Plasma installed here, a Plasma type is unknown,
+            # so its anchors, its Layout and every property on it read as
+            # missing. That is the modules' absence, not a mistake. What
+            # survives is what qmllint can judge from the file alone --
+            # syntax, and the structure of the QML itself.
             warns=$(printf '%s\n' "$msgs" | grep -E '^Warning:' \
-                     | grep -viE 'import|module|unresolved|was not found|unqualified' || true)
+                     | grep -viE 'import|module|unresolved|was not found|unqualified|missing-property' || true)
 
             [ -n "$errs" ] && { printf '%s\n' "$errs" | while IFS= read -r l; do
               echo "::error::QML $f: $l"; done; rc=1; }
