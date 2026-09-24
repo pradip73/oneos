@@ -82,11 +82,24 @@ jobs:
         # installed in this container) so those are filtered out; a syntax
         # error is a syntax error regardless.
         run: |
+          # Debian installs the Qt 6 tools outside PATH. Find it, and stop if
+          # it is absent rather than reporting "tool not found" once per file
+          # as though every applet were broken -- which is what the first run
+          # of this step did.
+          QMLLINT=$(command -v qmllint6 || command -v qmllint || true)
+          [ -n "$QMLLINT" ] || QMLLINT=$(ls /usr/lib/qt6/bin/qmllint 2>/dev/null || true)
+          if [ -z "$QMLLINT" ]; then
+            echo "::error::qmllint is not installed; the applets were NOT checked"
+            exit 1
+          fi
+          echo "using $QMLLINT"
+
           rc=0
           for f in $(find build/config/includes.chroot/usr/share/plasma -name '*.qml'); do
-            out=$(qmllint6 "$f" 2>&1 || qmllint "$f" 2>&1) || true
+            out=$("$QMLLINT" "$f" 2>&1) || true
             # Unresolved imports are expected: this container has no Plasma.
-            real=$(printf '%s\n' "$out" | grep -viE 'import|module .* not (found|installed)|^$' || true)
+            # A syntax error is a syntax error regardless.
+            real=$(printf '%s\n' "$out" | grep -viE 'import|module|^$|^Warning:.*not found' || true)
             if [ -n "$real" ]; then
               printf '%s\n' "$real" | while IFS= read -r l; do echo "::error::QML $f: $l"; done
               rc=1
