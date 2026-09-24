@@ -1,0 +1,124 @@
+name: Check the code
+
+# WHY THIS EXISTS
+# Every bug this project has shipped had the same shape: something was wrong
+# in a file nobody could run, and it only showed up as silence on a user's
+# screen twenty minutes of build and a 2.8 GB download later. A helper
+# without its executable bit. A Power button calling a binary that was never
+# installed. A sandbox that hid the display socket. None of those needed a
+# VM to find -- they needed someone to read the file carefully, which is
+# what these tools do in ninety seconds.
+#
+# In particular: a QML applet with a syntax error does not fail loudly. Plasma
+# silently substitutes its own widget, and the result is "the Start menu is
+# not mine" with nothing anywhere saying why. qmllint answers that here.
+#
+# Runs on every push. Reports as annotations, which are the one channel
+# readable without a repository token.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+
+    steps:
+      - name: Install the checkers
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            shellcheck qml6-module-qtqml qt6-declarative-dev-tools \
+            desktop-file-utils git ca-certificates
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Shell scripts
+        # The helpers, the hooks, and the build scripts. Style nags are off;
+        # what is wanted is the class of thing that breaks at runtime --
+        # unquoted expansions that split on spaces, tests that are always
+        # true, variables used before they are set.
+        run: |
+          rc=0
+          files=$(find build/config/includes.chroot/usr/bin \
+                       build/config/includes.chroot/usr/lib/oneos \
+                       build/config/hooks -type f 2>/dev/null)
+          files="$files build.sh build/verify.sh packaging/build-deb.sh"
+          for f in $files; do
+            [ -f "$f" ] || continue
+            out=$(shellcheck -f gcc -S warning \
+                    -e SC1090,SC1091 \
+                    "$f" 2>&1) || rc=1
+            [ -n "$out" ] && printf '%s\n' "$out" | while IFS= read -r l; do
+              case "$l" in
+                *": error:"*)   echo "::error::$l" ;;
+                *": warning:"*) echo "::warning::$l" ;;
+              esac
+            done
+          done
+          echo "shellcheck finished (rc=$rc)"
+          exit $rc
+
+      - name: QML applets
+        # A parse error here is the difference between the OneOS Start menu
+        # and Plasma's, with nothing on screen to say which you are looking
+        # at. qmllint cannot see missing Plasma imports (they are not
+        # installed in this container) so those are filtered out; a syntax
+        # error is a syntax error regardless.
+        run: |
+          rc=0
+          for f in $(find build/config/includes.chroot/usr/share/plasma -name '*.qml'); do
+            out=$(qmllint6 "$f" 2>&1 || qmllint "$f" 2>&1) || true
+            # Unresolved imports are expected: this container has no Plasma.
+            real=$(printf '%s\n' "$out" | grep -viE 'import|module .* not (found|installed)|^$' || true)
+            if [ -n "$real" ]; then
+              printf '%s\n' "$real" | while IFS= read -r l; do echo "::error::QML $f: $l"; done
+              rc=1
+            fi
+          done
+          echo "qmllint finished (rc=$rc)"
+          exit $rc
+
+      - name: Desktop entries
+        run: |
+          rc=0
+          for f in $(find build/config/includes.chroot -name '*.desktop'); do
+            out=$(desktop-file-validate "$f" 2>&1) || rc=1
+            [ -n "$out" ] && printf '%s\n' "$out" | while IFS= read -r l; do
+              echo "::warning::$l"
+            done
+          done
+          echo "desktop entries finished (rc=$rc)"
+          # Warnings only: some keys these files use are Plasma's, and
+          # desktop-file-validate does not know them.
+          exit 0
+
+      - name: Every helper the applets and entries call must exist
+        # The Power button called qdbus for weeks. Nothing caught it, because
+        # nothing checked that the commands the UI names are actually shipped.
+        run: |
+          rc=0
+          bin=build/config/includes.chroot/usr/bin
+          # Commands named in Exec= lines and in the applets' cmd: fields.
+          named=$( { grep -rhoE '^Exec=[a-z0-9-]+' build/config/includes.chroot --include='*.desktop' | cut -d= -f2
+                     grep -rhoE 'cmd: "[a-z0-9-]+' build/config/includes.chroot --include='*.qml' | cut -d'"' -f2
+                     grep -rhoE '(exec|run|raw)\("oneos-[a-z-]+' build/config/includes.chroot --include='*.qml' | grep -oE 'oneos-[a-z-]+'
+                   } | sort -u )
+          for c in $named; do
+            case "$c" in
+              oneos-*)
+                if [ ! -f "$bin/$c" ]; then
+                  echo "::error::$c is named in the interface but is not in usr/bin"
+                  rc=1
+                fi
+                ;;
+            esac
+          done
+          echo "referenced helpers finished (rc=$rc)"
+          exit $rc
