@@ -27,6 +27,8 @@ die_gui() {
 
 [ -f "$APK" ] || die_gui "That file no longer exists:\n$APK"
 
+name=$(basename "$APK")
+
 . /usr/lib/oneos/android.sh
 android_ensure_running || exit 1
 
