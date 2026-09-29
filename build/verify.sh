@@ -49,9 +49,21 @@ echo "verifying the image via ${MODE} ($(wc -l < "$MANIFEST") entries)"
 echo
 
 pass=0; fail=0; warn=0
-ok()   { printf '  \033[32mok\033[0m    %s\n' "$1"; pass=$((pass+1)); }
-bad()  { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; fail=$((fail+1)); }
-soft() { printf '  \033[33mwarn\033[0m  %s\n' "$1"; warn=$((warn+1)); }
+
+# Colour only when a person is watching. This was not a cosmetic choice: the
+# CI step picks the findings out with `grep -E '(FAIL|warn) '`, and with
+# colour always on there is an escape sequence sitting between the word and
+# the space, so that grep matched nothing -- ever. Every "clean" verify run
+# in this repository's history was a broken grep, not a verified image.
+if [ -t 1 ]; then
+	C_OK=$'\033[32m'; C_BAD=$'\033[31m'; C_WARN=$'\033[33m'; C_OFF=$'\033[0m'
+else
+	C_OK=''; C_BAD=''; C_WARN=''; C_OFF=''
+fi
+
+ok()   { printf '  %sok%s    %s\n'   "$C_OK"   "$C_OFF" "$1"; pass=$((pass+1)); }
+bad()  { printf '  %sFAIL%s  %s\n'   "$C_BAD"  "$C_OFF" "$1"; fail=$((fail+1)); }
+soft() { printf '  %swarn%s  %s\n'   "$C_WARN" "$C_OFF" "$1"; warn=$((warn+1)); }
 
 # Exact path match, so /usr/bin/wine does not match /usr/bin/wineserver.
 #

@@ -162,9 +162,18 @@ jobs:
           set -e
           echo "verify exited $rc"
           cat /tmp/verify.txt
-          grep -E '(FAIL|warn) ' /tmp/verify.txt | sed 's/^ *//' | while IFS= read -r l; do
+          # Strip any escape sequences before matching. verify.sh no longer
+          # colours a non-terminal, but this step must not depend on that
+          # again: the previous version matched on a word followed by a
+          # space, colour put an escape sequence in between, and the result
+          # was a check that reported nothing for its entire life.
+          sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^ *//' /tmp/verify.txt > /tmp/verify.plain
+          grep -E '^(FAIL|warn)' /tmp/verify.plain | while IFS= read -r l; do
             echo "::warning::$l"
           done || true
+          # And a line saying what it actually concluded, so "no warnings"
+          # can be told apart from "did not run".
+          tail -n 2 /tmp/verify.plain | while IFS= read -r l; do echo "::notice::verify: $l"; done
           if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
             echo "::warning::verify.sh itself failed with exit $rc -- the checker is broken, not necessarily the image"
           fi
