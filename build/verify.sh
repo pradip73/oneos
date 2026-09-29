@@ -67,11 +67,27 @@ soft() { printf '  %swarn%s  %s\n'   "$C_WARN" "$C_OFF" "$1"; warn=$((warn+1)); 
 
 # Exact path match, so /usr/bin/wine does not match /usr/bin/wineserver.
 #
-# Cannot simply test $NF: unsquashfs renders a symlink as "path -> target", so
-# the last field is the target and every symlinked helper looked missing.
-# Match the field that starts with a slash instead.
+# Cannot compare fields: a path may CONTAIN SPACES. "Program Files" is the
+# obvious one, and the previous version -- which compared whitespace-separated
+# fields -- therefore reported the preinstalled VLC and Notepad++ as missing
+# on every build. They were there all along. Two false alarms in a checker
+# whose whole job is to be believed.
+#
+# Cannot simply test the last field either: unsquashfs renders a symlink as
+# "path -> target", so the last field is the target and every symlinked
+# helper looked missing.
+#
+# So: find the path as a substring, then require that it is bounded -- a
+# space before it, and either end-of-line or " -> " after it.
 entry() {
-	awk -v p="$1" '{ for (i = 1; i <= NF; i++) if ($i == p) { print; exit } }' "$MANIFEST"
+	grep -F -- "$1" "$MANIFEST" | awk -v p="$1" '
+		{
+			i = index($0, p)
+			if (i < 2) next                       # must not start the line
+			if (substr($0, i - 1, 1) != " ") next  # must follow a space
+			rest = substr($0, i + length(p))
+			if (rest == "" || substr(rest, 1, 4) == " -> ") { print; exit }
+		}'
 }
 
 must_exist()  { if [ -n "$(entry "$1")" ]; then ok "$1"; else bad "missing: $1${2:+  ($2)}"; fi; }
