@@ -133,7 +133,15 @@ must_exist   "/usr/bin/bwrap"    "Windows programs would run UNSANDBOXED"
 should_exist "/usr/bin/waydroid" "no Android support in this image"
 # Darling ships Ubuntu-built packages, so failing to install on trixie is an
 # expected outcome rather than a fault.
-should_exist "/usr/bin/darling"  "no macOS support (expected: Ubuntu-built packages)"
+# Off by default since the workflow stopped installing it on every build; the
+# hook is only present when a manual run asks for it. A warning for an absence
+# that was chosen is noise, and a warning that is always there is the one
+# people learn to skip -- taking the real warnings down with it.
+if [ -f "${BUILD_DIR}/config/hooks/normal/0060-mac.hook.chroot" ]; then
+	should_exist "/usr/bin/darling" "macOS layer was requested but did not install"
+else
+	ok "macOS layer not requested for this build (opt-in)"
+fi
 
 echo "== Preinstalled Windows programs =="
 # The 310 MB that vanished, named individually so a report says which.

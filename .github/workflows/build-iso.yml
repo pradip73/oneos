@@ -149,10 +149,19 @@ jobs:
         # those bugs was a file present and not executable -- before anyone
         # downloads 2.6 GB to find out by clicking.
         #
-        # Reports; does not gate. This check has now failed twice for reasons
-        # inside itself rather than inside the image, and an unproven verifier
-        # that blocks good builds is worse than none -- it teaches people to
-        # ignore it. It will gate again once it has run clean a few times.
+        # WHAT IT GATES, AND WHAT IT DOES NOT
+        # It decides whether this image becomes the public download -- the
+        # release step below runs only on zero failures. It does NOT fail the
+        # build, so the artifact still uploads either way.
+        #
+        # That split is deliberate. This checker has had three bugs of its
+        # own (colour codes hid every finding; paths with spaces never
+        # matched; it once reported nothing at all), and a verifier that
+        # blocks good builds teaches people to ignore it. Gating only the
+        # release means a false alarm costs a public download, not the
+        # artifact needed to find out it was false -- while a real failure
+        # can no longer reach anyone who downloads OneOS.
+        id: verify
         continue-on-error: true
         run: |
           chmod +x build/verify.sh
@@ -176,6 +185,19 @@ jobs:
           tail -n 2 /tmp/verify.plain | while IFS= read -r l; do echo "::notice::verify: $l"; done
           if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
             echo "::warning::verify.sh itself failed with exit $rc -- the checker is broken, not necessarily the image"
+          fi
+
+          # The verdict the release step reads. "clean" only when verify ran
+          # to its summary line AND reported zero failures: a checker that
+          # crashed half-way must not count as a pass -- that was exactly
+          # this step's failure mode for most of its life.
+          summary=$(grep -E '^[0-9]+ passed, [0-9]+ warnings, [0-9]+ FAILURES' /tmp/verify.plain | tail -n 1)
+          fails=$(printf '%s' "$summary" | sed -nE 's/.*, ([0-9]+) FAILURES.*/\1/p')
+          if [ -n "$summary" ] && [ "$fails" = "0" ]; then
+            echo "verdict=clean" >> "$GITHUB_OUTPUT"
+          else
+            echo "verdict=not-clean" >> "$GITHUB_OUTPUT"
+            echo "::error::The image failed verification (${summary:-verify did not finish}). It will NOT be published as a release. The artifact is still uploaded for diagnosis."
           fi
 
       - name: Show result
@@ -214,7 +236,7 @@ jobs:
         # or a download manager can carry on where it stopped. GitHub caps a
         # single asset at 2 GiB, so the image ships split, with join.txt
         # saying how to put it back in one command.
-        if: success()
+        if: success() && steps.verify.outputs.verdict == 'clean'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.ver.outputs.version }}
