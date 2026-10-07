@@ -200,6 +200,94 @@ jobs:
             echo "::error::The image failed verification (${summary:-verify did not finish}). It will NOT be published as a release. The artifact is still uploaded for diagnosis."
           fi
 
+      - name: Run OneOS's own code inside the image
+        # Everything before this reads files. This RUNS them, inside the image
+        # that was just built, which is as close to a user's machine as CI can
+        # get without one.
+        #
+        # It exists because of one bug in particular. Every Windows program
+        # "opened and closed" for weeks: the sandbox hid /tmp and mounted
+        # /run/user read-only, so Wine found no display socket and exited.
+        # Nothing could catch that by reading -- the script was correct
+        # shell, it just described a box with no way out. Starting Wine
+        # inside the real sandbox catches it in eight seconds.
+        #
+        # Reports; does not gate, and does not decide the release. New, and
+        # its own failures are not yet distinguishable from the image's.
+        continue-on-error: true
+        run: |
+          # GitHub runs steps under `bash -e`, and half of what this step does
+          # is run commands that are SUPPOSED to exit non-zero -- a usage
+          # message exits 2. Without this the step would abort on the first
+          # one and report nothing about the rest.
+          set +e
+
+          CH=build/chroot
+          if [ ! -d "$CH/usr/bin" ]; then
+            echo "::warning::no chroot left to run in -- OneOS's code was NOT executed"
+            exit 0
+          fi
+
+          # Wine and bubblewrap both need these; without them the test would
+          # fail for reasons that have nothing to do with the image.
+          mkdir -p "$CH/proc" "$CH/sys" "$CH/dev"
+          mount -t proc  proc "$CH/proc" 2>/dev/null || true
+          mount -t sysfs sys  "$CH/sys"  2>/dev/null || true
+          mount --bind /dev   "$CH/dev"  2>/dev/null || true
+          trap 'umount -l "$CH/proc" "$CH/sys" "$CH/dev" 2>/dev/null || true' EXIT
+
+          fails=0
+          inside() {
+            chroot "$CH" env \
+              HOME=/root \
+              PATH=/usr/sbin:/usr/bin:/sbin:/bin \
+              LANG=C.UTF-8 \
+              "$@" 2>&1
+          }
+          check() {
+            label=$1; expect=$2; shift 2
+            out=$(inside "$@"); rc=$?
+            if [ "$rc" != "$expect" ]; then
+              echo "::error::$label exited $rc, expected $expect"
+              printf '%s\n' "$out" | tail -n 6 | while IFS= read -r l; do
+                echo "::error::  $label: $l"
+              done
+              fails=$((fails + 1))
+            else
+              echo "ok: $label"
+            fi
+            printf '%s\n' "--- $label (rc=$rc) ---" "$out" >> /tmp/inside.log
+          }
+
+          # Usage paths: cheap, and they prove the file parses and runs under
+          # `set -u` in the real image rather than only on my reading of it.
+          check "oneos-session (usage)" 2 /usr/bin/oneos-session
+          check "oneos-launch (usage)"  2 /usr/bin/oneos-launch
+
+          # The two report tools, which source the shared libraries. An
+          # unbound variable or a bad source path shows up here as a non-zero
+          # exit instead of as a blank dialog on someone's desktop.
+          check "oneos-hwcheck --text"  0 /usr/bin/oneos-hwcheck --text
+          check "oneos-doctor --text"   0 /usr/bin/oneos-doctor  --text
+
+          # THE ONE THAT MATTERS: start Wine inside the real sandbox. If the
+          # bubblewrap mounts are wrong again, this is where it shows.
+          echo "--- Windows layer ---"
+          if out=$(inside xvfb-run -a /usr/bin/oneos-wine-run /tmp/citest wine --version); then
+            echo "ok: Wine runs inside the sandbox -- $(printf '%s' "$out" | tail -n 1)"
+          else
+            echo "::error::Wine did NOT run inside the sandbox. Windows programs will open and close."
+            printf '%s\n' "$out" | tail -n 10 | while IFS= read -r l; do
+              echo "::error::  wine-run: $l"
+            done
+            fails=$((fails + 1))
+          fi
+
+          echo "=== full output ==="
+          cat /tmp/inside.log 2>/dev/null || true
+          echo "$fails failure(s) running OneOS's code in the image"
+          exit $fails
+
       - name: Show result
         run: ls -lh out/
 
